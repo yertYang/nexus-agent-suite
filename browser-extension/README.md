@@ -10,6 +10,8 @@
 
 ## 安装与独立聊天
 
+[下载 Navi Link 插件 ZIP](https://github.com/yertYang/nexus-agent-suite/raw/refs/heads/main/downloads/navi-link.zip)。解压后按下面的步骤加载。
+
 1. 在 Chrome 打开 `chrome://extensions`，或在 Edge 打开 `edge://extensions`。启用开发者模式，点「加载已解压的扩展程序」，选择包含 `manifest.json` 的文件夹；ZIP 包须先解压。需要 Chromium 116 或更新版本。固定 Navi Link 到工具栏，点击图标打开侧栏。无需先启动工作台。
 2. 点击输入区右下角的「模型与工具设置」图标，选择独立模式，填写模型 API Base URL（以 `/v1` 结尾）和 API Key，点「保存并连接」并允许访问该服务。支持 HTTPS 或本机 HTTP；服务必须提供 `/models` 和 Responses `/responses`，仅支持 Chat Completions 的服务暂不可用。
 3. 保存成功后，在输入框内的底部工具栏选择模型，输入消息即可聊天。可直接说“用浏览器打开百度搜索苹果”；每次工具操作仍须批准，读取和交互还会按需申请站点权限。

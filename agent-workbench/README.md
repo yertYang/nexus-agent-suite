@@ -1,5 +1,7 @@
 # Navi
 
+[下载 macOS 桌面工作台 ZIP](https://github.com/yertYang/nexus-agent-suite/raw/refs/heads/main/downloads/navi-desktop-macos.zip)。完整解压后打开 `Navi.app`，保留同目录的 `agent-workbench/`。支持 Intel 和 Apple 芯片、macOS 12+，需要 Node.js 24+、Corepack，首次启动需联网。启动器未经 Apple 公证。
+
 Navi 把模型对话和本机项目连在一起。你可以授权一个目录，在聊天里看模型提出的工具调用，批准需要写入或执行命令的操作，然后核对结果。无需安装 Codex。
 
 - **API 模式**：Navi → Codex Proxy RS（CPR）的 Responses 接口 → 模型 → Navi 根据原生工具调用驱动 Nexus → 本地 Runner。
