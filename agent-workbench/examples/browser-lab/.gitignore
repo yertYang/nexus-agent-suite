@@ -1,0 +1,4 @@
+node_modules/
+.nexus-test-output/
+browser.local.json
+case-*.json

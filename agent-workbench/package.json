@@ -1,0 +1,28 @@
+{
+  "name": "navi-workbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node scripts/launch.mjs local",
+    "demo": "node scripts/launch.mjs demo",
+    "model-demo": "node scripts/launch.mjs model-demo",
+    "operator": "node scripts/launch.mjs operator",
+    "import-key": "node scripts/launch.mjs import-key",
+    "prepare:nexus": "node scripts/prepare.mjs nexus",
+    "prepare:cpr": "node scripts/prepare.mjs cpr",
+    "cpr:up": "node scripts/prepare.mjs cpr-up",
+    "cpr:down": "node scripts/prepare.mjs cpr-down",
+    "prepare:browser": "node scripts/browser.mjs prepare",
+    "browser:up": "node scripts/browser.mjs up",
+    "browser:down": "node scripts/browser.mjs down",
+    "ui:check": "node scripts/check-ui.mjs",
+    "team:init": "node team/main.mjs init",
+    "team:start": "node team/main.mjs serve",
+    "team:device": "node team/device.mjs"
+  }
+}

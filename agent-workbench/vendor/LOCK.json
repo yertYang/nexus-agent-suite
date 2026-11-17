@@ -1,0 +1,21 @@
+{
+  "nexus": {
+    "url": "https://github.com/ysunyang4/Nexus.git",
+    "revision": "abb4d47763870305a17adcdbd733d3386dc53dd6",
+    "license": "AGPL-3.0-only",
+    "pnpm": "10.14.0",
+    "archiveSha256": "63f7d5fc8025f3fd381494cd7743acbfb6e732695df0637a6771c8a805815512"
+  },
+  "codexProxyRs": {
+    "url": "https://github.com/zyycn/codex-proxy-rs.git",
+    "sourceRevision": "0f5bf03e13a43b34c43b9e3a6dee935ad43f6d2b",
+    "license": "Apache-2.0",
+    "version": "v3.49.0",
+    "image": "ghcr.io/zyycn/codex-proxy-rs@sha256:74046609022d1249ae34ab7b28dcb23cc97215c3a67dd642663beddf2d5232a5",
+    "assets": {
+      "compose.yaml": "08602c4f9edcad49728e1caa60abfd51f78220f0c939ce9b6da4e425ed32b585",
+      "config.example.yaml": "2b19c3136ce70e1952a8960fdc4ba1da039f74b6b13682c6188034874931151e"
+    },
+    "archiveSha256": "9b009314855d2c3b5383a2e89ef1b67c489fd16f8d4ab4274f585ff0deff9fe6"
+  }
+}

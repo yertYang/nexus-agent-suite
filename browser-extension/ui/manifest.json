@@ -1,0 +1,13 @@
+{
+  "package": "@navi/ui",
+  "version": "0.4.1",
+  "sha256": {
+    "LICENSE": "e3594875478a976c5e563aa23489b54d4b782a619e05ce0d03062d806c9467d5",
+    "chevron-down.svg": "81ae9db5d6af919bfe4c79797b92d4eb022bb5a8da55af1e95fb763271c92040",
+    "components.css": "4193117dd2f5bd167156b16b2b9fe0ea0a96e008f8bfa745d805bdf8c472af3a",
+    "marked-LICENSE": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+    "marked.js": "392f4df89533b50f1dadff3f6dc0952350bd39c9f17def50a0374ef47d6147ef",
+    "reply.js": "0c1f9f93f99ac407df9e06ace1703f703ef64ab7319c983850944dac7b736531",
+    "tokens.css": "9d5877a1b645d3b06ca49c0dd581b9732f57c4769a508f498c8df27433fde0f9"
+  }
+}

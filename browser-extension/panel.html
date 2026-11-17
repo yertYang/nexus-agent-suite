@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Navi Link</title>
+  <link rel="stylesheet" href="ui/tokens.css">
+  <link rel="stylesheet" href="ui/components.css">
+  <link rel="stylesheet" href="panel.css">
+  <script defer src="ui/marked.js"></script>
+  <script defer src="ui/reply.js"></script>
+  <script defer src="core/intent.js"></script>
+  <script defer src="panel-bridge.js"></script>
+  <script defer src="panel.js"></script>
+</head>
+<body data-density="compact">
+  <header class="panel-header">
+    <div class="panel-grants">
+      <p id="automation-grant" class="nv-status" data-tone="info" hidden>已授权浏览器操作</p>
+      <p id="file-grant" class="nv-status" data-tone="info" hidden>已授权本机文件操作</p>
+      <p id="testing-grant" class="nv-status" data-tone="info" hidden>已授权项目用例测试</p>
+    </div>
+    <button id="new-chat" type="button" class="nv-button" data-variant="ghost" data-size="sm" disabled>新对话</button>
+  </header>
+    <dialog id="bridge-settings" class="settings-dialog" aria-labelledby="settings-title">
+      <div class="settings-heading"><div><h2 id="settings-title">设置</h2><p>模型连接与本机工具</p></div><button id="close-settings" class="nv-button settings-close" type="button" aria-label="关闭设置" title="关闭设置"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div>
+      <div class="bridge-content">
+    <section class="nv-stack" id="model-connection" aria-label="模型连接">
+      <h3>模型服务</h3>
+      <a href="team.html" class="nv-button" data-variant="secondary">团队网站 · 账号对话</a>
+      <label class="nv-field"><span class="nv-label">连接方式</span><select id="chat-mode" class="nv-select"><option value="direct">独立连接模型（无需 MCP）</option><option value="navi">使用本机 Navi</option></select></label>
+      <div id="direct-settings" class="nv-stack">
+        <p class="help">连接支持 Responses API 的服务，即可聊天和操作网页。</p>
+        <label class="nv-field"><span class="nv-label">API Base URL</span><input id="direct-url" class="nv-input" type="url" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false"></label>
+        <label class="nv-field"><span class="nv-label">API Key <span id="direct-key-state" class="key-state"></span></span><input id="direct-key" class="nv-input" type="password" autocomplete="off" placeholder="输入 API Key"></label>
+        <div class="nv-row actions"><button id="direct-save" class="nv-button" data-variant="primary" type="button">保存并连接</button><button id="direct-clear" class="nv-button" data-variant="ghost" type="button">移除连接</button></div>
+        <p id="direct-status" class="help" role="status"></p>
+      </div>
+      <p id="navi-mode-help" class="help" hidden>使用本机 Navi 已保存的模型和项目工具。独立聊天不需要连接此服务。</p>
+    </section>
+    <details id="local-settings" class="local-settings"><summary>本机工具 <span>可选</span></summary><div class="local-content">
+    <section id="pairing" aria-label="Navi 连接">
+      <div class="nv-row row"><h3>Navi 工作台</h3><span id="pair-tag" class="nv-status"></span></div>
+      <p id="pair-status" class="connection-text" role="status">在 Navi 中选择一个项目，网页工具将默认使用只读权限。</p>
+      <div class="nv-row actions">
+        <button id="pair" type="button" class="nv-button" data-variant="primary" data-size="sm">连接 Navi</button>
+        <button id="copy-protocol" type="button" hidden class="nv-button" data-size="sm">复制会话协议</button>
+        <button id="pair-refresh" type="button" hidden class="nv-button" data-size="sm">重试加载只读工具</button>
+        <a id="open-workbench" href="http://127.0.0.1:17880/" target="_blank" rel="noopener noreferrer">打开工作台 ↗</a>
+      </div>
+      <textarea class="nv-textarea" id="prompt" readonly aria-label="会话协议" hidden></textarea>
+    </section>
+    <details id="connection">
+      <summary>高级设置</summary>
+      <div class="settings">
+        <p class="endpoint"><code>http://127.0.0.1:18080/mcp</code></p>
+        <p class="connection-text">需要手动连接时，可填写自己的 MCP 令牌和项目 ID。</p>
+        <div class="nv-field">
+          <label class="nv-label" for="token">Nexus MCP Token <span id="configured"></span></label>
+          <input class="nv-input" data-size="sm" id="token" type="password" autocomplete="off" spellcheck="false" placeholder="仅接受 lb_ 开头的 MCP Token">
+        </div>
+        <div class="nv-field">
+          <label class="nv-label" for="project">Nexus 项目 ID</label>
+          <input class="nv-input" data-size="sm" id="project" autocomplete="off" spellcheck="false" placeholder="从 Nexus 项目列表复制 ID">
+        </div>
+        <div class="nv-row actions">
+          <button id="save" type="button" class="nv-button" data-variant="primary" data-size="sm">保存连接</button>
+          <button id="check" type="button" class="nv-button" data-size="sm">检测连接</button>
+          <button id="clear" type="button" class="nv-button" data-variant="ghost" data-size="sm">清除本机连接</button>
+        </div>
+        <p id="connection-status" role="status"></p>
+        <fieldset id="tools" hidden>
+          <legend>允许网页提议的工具</legend>
+          <p>只选择此任务需要的工具。执行权限仍由 Nexus 校验。</p>
+          <div id="catalogue"></div>
+          <button id="save-tools" type="button" class="nv-button" data-size="sm">保存工具选择</button>
+        </fieldset>
+      </div>
+    </details>
+        <button id="disconnect-chat" type="button" class="nv-button" data-variant="ghost" data-size="sm" hidden>断开侧栏会话</button>
+        <p id="help">使用 ChatGPT 或 DeepSeek 网页时，复制协议到网页对话，启用浮窗后发送下一条消息。工具仍需在侧栏逐次确认。</p>
+      </div></details>
+        <p id="feedback" role="status"></p>
+      </div>
+    </dialog>
+  <main id="chat-surface" aria-label="Navi 对话">
+    <section class="nv-card" id="review" hidden>
+      <div class="nv-row row"><h2>当前对话的工具请求</h2><span id="rounds" class="nv-status"></span></div>
+      <p id="call-state"></p>
+      <strong id="tool-name"></strong>
+      <pre id="args" aria-label="待确认工具参数" tabindex="0"></pre>
+      <p id="noAuto">将调用下方项目对应的本机工具。确认前先检查参数。</p>
+      <p id="pending-note" hidden></p>
+      <a id="approvals" target="_blank" rel="noopener noreferrer" hidden>打开本机工作台审批 ↗</a>
+      <pre id="result" aria-label="Nexus 工具结果" tabindex="0" hidden></pre>
+      <div class="nv-row actions">
+        <button id="execute" type="button" class="nv-button" data-variant="primary" data-size="sm" hidden>确认执行</button>
+        <button id="reject" type="button" hidden class="nv-button" data-size="sm">拒绝</button>
+        <button id="retry" type="button" class="nv-button" data-variant="primary" data-size="sm" hidden>审批后重试原调用</button>
+        <button id="cancel" type="button" hidden class="nv-button" data-size="sm">停止等待</button>
+        <button id="copy-result" type="button" hidden class="nv-button" data-size="sm">复制结果</button>
+      </div>
+    </section>
+    <div id="conversation" class="nv-stack transcript" aria-label="对话记录" role="log" aria-live="polite">
+      <div id="chat-empty" class="empty-chat">
+        <img src="icons/navi.svg" alt="" width="38" height="38">
+        <h2>与 Navi 对话</h2>
+        <p id="chat-empty-description">配置模型后即可聊天和操作网页；只有本机文件任务需要连接 Navi。</p>
+        <button id="show-connections" type="button" class="nv-button" data-variant="secondary" data-size="sm">设置连接</button>
+      </div>
+    </div>
+  </main>
+  <footer class="panel-footer">
+    <div class="nv-row recovery">
+      <p id="chat-status" role="status" hidden></p>
+      <button id="recover-chat" type="button" class="nv-button" data-size="sm" hidden>检查运行状态</button>
+    </div>
+    <form id="composer" class="nv-card">
+      <div class="composer-line">
+      <textarea id="chat-prompt" class="nv-textarea" rows="1" aria-label="消息" placeholder="给 Navi 发消息" maxlength="16000" required disabled></textarea>
+      <div class="nv-row composer-actions">
+        <button id="choose-project" type="button" class="nv-button composer-icon" data-variant="ghost" aria-label="选择项目" title="选择项目" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"/></svg></button>
+        <button id="stop-chat" type="button" class="nv-button composer-icon" data-variant="primary" aria-label="停止生成" title="停止生成" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1" fill="currentColor" stroke="none"/></svg></button>
+        <button id="send-chat" type="submit" class="nv-button composer-icon" data-variant="primary" aria-label="发送消息" title="发送消息" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6 6-6 6 6"/></svg></button>
+      </div>
+      </div>
+      <div class="composer-toolbar">
+        <select id="chat-model" class="nv-select" data-size="sm" data-variant="plain" aria-label="选择模型" title="选择模型" disabled><option>选择模型</option></select>
+        <select id="chat-effort" class="nv-select" data-size="sm" data-variant="plain" aria-label="思考强度" title="思考强度" hidden><option value="">默认强度</option></select>
+        <button id="open-settings" class="nv-button composer-icon" data-variant="ghost" type="button" aria-label="模型与工具设置" title="模型与工具设置"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button>
+      </div>
+    </form>
+    <p id="composer-caption">在模型设置中连接 API</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "@navi/ui",
+  "version": "0.4.1",
+  "description": "Navi UI tokens, components and optional Markdown reply rendering",
+  "license": "MIT",
+  "files": ["reply.js", "marked.js", "marked-LICENSE", "tokens.css", "components.css", "chevron-down.svg", "README.md", "LICENSE", "manifest.json", "CHANGELOG.md", "preview.html", "preview.css", "preview.js"],
+  "exports": {
+    "./reply.js": "./reply.js",
+    "./marked.js": "./marked.js",
+    "./tokens.css": "./tokens.css",
+    "./components.css": "./components.css",
+    "./chevron-down.svg": "./chevron-down.svg"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Navi · 表单用例</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px -apple-system,BlinkMacSystemFont,sans-serif;color:#242c27;background:#f0f5eb;min-height:100vh;display:grid;place-items:center}
+main{width:min(520px,calc(100% - 48px));padding:24px 32px;background:white;border:1px solid #d1dfcf;border-radius:16px}
+.eyebrow{color:#4d6f57;font-size:12px;letter-spacing:.12em;font-weight:700}h1{margin:10px 0 6px}p{margin:8px 0 16px;color:#536555}
+label{display:block;font-weight:650;margin:0 0 7px}input{border:1px solid #b7cabb;padding:10px;border-radius:6px;width:100%;font:inherit}
+button{margin-top:10px;background:#294734;color:white;border:0;border-radius:7px;padding:9px 14px;font:inherit}
+output{display:block;margin-top:13px;color:#355e43;font-weight:750;min-height:28px}
+</style>
+<main>
+  <div class="eyebrow">NAVI / BROWSER LAB</div><h1>表单测试台</h1><p>填写姓名并提交，核对页面中的实际结果。</p>
+  <form data-testid="form">
+    <label for="name">姓名</label><input id="name" data-testid="name" name="name" required>
+    <button type="submit" data-testid="submit">提交</button>
+  </form>
+  <output data-testid="result" aria-live="polite">等待输入</output>
+</main>
+<script>
+document.querySelector('form').addEventListener('submit', function(event) {
+  event.preventDefault();
+  document.querySelector('output').textContent = 'Hello ' + document.querySelector('input').value.trim();
+});
+</script>
+</html>

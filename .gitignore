@@ -1,0 +1,27 @@
+.DS_Store
+.runtime/
+node_modules/
+.nexus-test-output/
+.env
+.env.*
+!.env.example
+*.log
+*.sqlite
+*.sqlite-*
+*.pem
+*.p12
+*.pfx
+*.key
+# Server installation state; release templates live under deploy/team.
+**/deploy/team/data/
+**/deploy/team/backups/
+**/deploy/team/config/
+**/deploy/team/site.env
+**/deploy/team/image.env*
+site.env
+image.env
+image.env.next.*
+# Generated bundles, local Git handoffs and captured browser screens stay on the workstation.
+/outputs/*
+!/outputs/功能测试报告-2026-11-17.md
+/agent-workbench/docs/screenshots/

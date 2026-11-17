@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fa">
+  <title>Navi</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="stylesheet" href="/ui/tokens.css">
+  <link rel="stylesheet" href="/ui/components.css">
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/ui/marked.js"></script>
+  <script defer src="/ui/reply.js"></script>
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-brand" viewBox="0 0 24 24"><path d="M7 16.8V7.2l10 9.6V7.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 14a3 3 0 0 1-3 3H9l-5 4V6a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3zM8 8h8m-8 4h5"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 4-2.6 6.5-8 9-5.4-2.5-8-5-8-9V6z"/><path d="m8.5 12 2.4 2.4 4.6-4.6"/></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h4m4 0h8"/><circle cx="13" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+      <symbol id="i-box" viewBox="0 0 24 24"><path d="M9 3h6v3a2 2 0 1 0 4 0h2v6h-3a2 2 0 1 0 0 4h3v5h-7v-3a2 2 0 1 0-4 0v3H3v-7h3a2 2 0 1 0 0-4H3V3z"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m8 10 4 4 4-4"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19 10a7 7 0 1 0 0 4m0-8v4h-4"/></symbol>
+      <symbol id="i-exit" viewBox="0 0 24 24"><path d="M12 5H5v14h7m1-7h8m-3-3 3 3-3 3"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-11-2 12"/></symbol>
+      <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-sidebar-close" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M9 4.5v15m7-10-2.5 2.5 2.5 2.5"/></symbol>
+      <symbol id="i-sidebar-open" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M9 4.5v15m4.5-10L16 12l-2.5 2.5"/></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M7.5 12V6.8a1.4 1.4 0 0 1 2.8 0v3.6-5a1.4 1.4 0 1 1 2.8 0v4.9-3.5a1.4 1.4 0 0 1 2.8 0v4.2-2.3a1.4 1.4 0 1 1 2.8 0v5.4a6.6 6.6 0 0 1-6.7 6.9c-2.4 0-4.2-1-5.5-3l-2.7-4.2a1.6 1.6 0 0 1 2.4-2.1l1.3 1.4"/></symbol>
+    </defs>
+  </svg>
+  <section id="login" class="login-screen">
+    <form id="login-form" class="nv-card login-form">
+      <header class="login-heading">
+        <svg class="login-mark" aria-hidden="true"><use href="#i-brand"></use></svg>
+        <h1>欢迎使用 Navi</h1>
+        <p>登录本机工作台，继续处理项目。</p>
+      </header>
+      <div class="nv-field">
+        <label class="nv-label" for="operator">本机操作员密钥</label>
+        <input id="operator" class="nv-input" type="password" autocomplete="off" placeholder="输入密钥" required>
+      </div>
+      <button class="nv-button" data-variant="primary" type="submit">登录</button>
+      <p aria-live="polite" class="form-error" id="login-error"></p>
+      <p class="login-help">也可以双击 Navi.app 自动登录。</p>
+    </form>
+  </section>
+  <section id="workspace" class="workspace" hidden>
+    <aside class="sidebar" id="workspace-sidebar">
+      <a class="brand" href="#chat" aria-label="Navi 首页" title="Navi 首页"><svg aria-hidden="true" class="brand-icon"><use href="#i-brand"></use></svg><strong>Navi</strong></a>
+      <button id="new-chat" class="nv-button new-chat" data-variant="secondary" type="button" aria-label="新建对话" title="新建对话"><svg aria-hidden="true"><use href="#i-plus"></use></svg><span class="nav-name">新建对话</span></button>
+      <div class="nav-label">工作台</div>
+      <nav id="nav" aria-label="工作台导航">
+        <a href="#chat" data-page="chat" aria-label="对话工作区" title="对话工作区"><svg aria-hidden="true"><use href="#i-chat"></use></svg><span class="nav-name">对话工作区</span></a>
+        <a href="#projects" data-page="projects" aria-label="项目与权限" title="项目与权限"><svg aria-hidden="true"><use href="#i-folder"></use></svg><span class="nav-name">项目与权限</span></a>
+        <a href="#approvals" data-page="approvals" aria-label="审批中心" title="审批中心"><svg aria-hidden="true"><use href="#i-shield"></use></svg><span class="nav-name">审批中心</span><span id="approval-count" class="nv-status nav-count" data-tone="info" hidden></span></a>
+        <a href="#sessions" data-page="sessions" aria-label="项目会话" title="项目会话"><svg aria-hidden="true"><use href="#i-layers"></use></svg><span class="nav-name">项目会话</span></a>
+        <a href="#settings" data-page="settings" aria-label="连接设置" title="连接设置"><svg aria-hidden="true"><use href="#i-sliders"></use></svg><span class="nav-name">连接设置</span></a>
+        <a href="#deployments" data-page="deployments" aria-label="部署管理" title="部署管理"><svg aria-hidden="true"><use href="#i-layers"></use></svg><span class="nav-name">部署管理</span></a>
+        <a href="#extension" data-page="extension" aria-label="网页扩展" title="网页扩展"><svg aria-hidden="true"><use href="#i-box"></use></svg><span class="nav-name">网页扩展</span></a>
+      </nav>
+      <div class="nav-label recent-label">近期对话</div>
+      <div id="recent" class="recent"></div>
+      <div class="sidebar-foot">
+        <span id="mode-chip" class="nv-status mode-chip" data-tone="neutral" role="status" title="正在连接">正在连接</span>
+        <button id="refresh" class="nv-icon-button" data-variant="ghost" data-size="sm" type="button" title="刷新连接状态" aria-label="刷新连接状态"><svg aria-hidden="true"><use href="#i-refresh"></use></svg></button>
+        <button id="logout" class="nv-icon-button" data-variant="ghost" data-size="sm" type="button" aria-label="退出登录" title="退出登录"><svg aria-hidden="true"><use href="#i-exit"></use></svg></button>
+        <button id="desktop-sidebar-toggle" class="nv-icon-button desktop-sidebar-toggle" data-variant="ghost" data-size="sm" type="button" aria-label="收起侧边栏" title="收起侧边栏" aria-controls="workspace-sidebar" aria-expanded="true"><svg aria-hidden="true"><use href="#i-sidebar-close"></use></svg></button>
+      </div>
+    </aside>
+    <button id="sidebar-scrim" class="sidebar-scrim" type="button" aria-label="关闭导航" hidden></button>
+    <div class="shell">
+      <button id="sidebar-toggle" class="nv-icon-button sidebar-toggle" data-variant="secondary" data-size="sm" type="button" aria-label="打开导航" aria-controls="workspace-sidebar" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"></use></svg></button>
+      <main id="main"></main>
+    </div>
+  </section>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

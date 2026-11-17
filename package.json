@@ -1,0 +1,10 @@
+{
+  "name": "navi-agent-suite",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "ui:sync": "node scripts/sync-ui.mjs sync",
+    "ui:check": "node scripts/sync-ui.mjs check",
+    "ui:pack": "node scripts/sync-ui.mjs pack"
+  }
+}

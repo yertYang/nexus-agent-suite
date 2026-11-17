@@ -1,0 +1,24 @@
+name: navi-team
+services:
+  team:
+    image: ${NAVI_TEAM_IMAGE:?Set the GHCR image digest in image.env}
+    # Linux only. The application binds to loopback, as does a local model gateway.
+    network_mode: host
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    env_file: ./site.env
+    environment:
+      NAVI_TEAM_DATA: /var/lib/navi-team
+    volumes:
+      - type: bind
+        source: ./data
+        target: /var/lib/navi-team
+        bind: { create_host_path: false }
+      - type: bind
+        source: ./config
+        target: /etc/navi-team
+        read_only: true
+        bind: { create_host_path: false }

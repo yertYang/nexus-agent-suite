@@ -1,0 +1,40 @@
+/* SPDX-License-Identifier: MIT */
+:root {
+  --nv-background: #f5f7fa;
+  --nv-surface: #fff;
+  --nv-surface-soft: #f5f7fa;
+  --nv-border: #e4e7ed;
+  --nv-border-strong: #dcdfe6;
+  --nv-text: #303133;
+  --nv-muted: #606266;
+  --nv-brand: #409eff;
+  --nv-accent: #206fc1;
+  --nv-accent-hover: #155da6;
+  --nv-accent-soft: #ecf5ff;
+  --nv-accent-border: #b3d8ff;
+  --nv-focus: #206fc1;
+  --nv-success: #387825;
+  --nv-success-soft: #f0f9eb;
+  --nv-warning: #86590d;
+  --nv-warning-soft: #fff3d7;
+  --nv-danger: #bd3846;
+  --nv-danger-hover: #983039;
+  --nv-danger-soft: #fef0f0;
+  --nv-info: #515d70;
+  --nv-info-soft: #f4f4f5;
+  --nv-radius: 4px;
+  --nv-radius-sm: 4px;
+  --nv-shadow: 0 2px 10px rgb(0 0 0 / 6%);
+  --nv-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --nv-font-size: 14px;
+  --nv-control-height: 40px;
+  --nv-control-height-sm: 30px;
+  --nv-gap: 8px;
+}
+
+[data-density="compact"] {
+  --nv-font-size: 13px;
+  --nv-control-height: 32px;
+  --nv-control-height-sm: 28px;
+  --nv-gap: 6px;
+}

@@ -1,0 +1,8 @@
+{
+  "nexusRevision": "abb4d47763870305a17adcdbd733d3386dc53dd6",
+  "dependencies": [],
+  "sha256": {
+    "01-office-read.patch": "b9eaf0420dbf860c6ac8d77c173806b9312b11ccb00d485701440510b5c2ac3e",
+    "office-text.ts": "943449ec490409399f995603c5dfd4042ae5d43d730da8b7e7726b3c960e038b"
+  }
+}

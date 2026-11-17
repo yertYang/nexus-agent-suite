@@ -1,0 +1,62 @@
+/* SPDX-License-Identifier: MIT · Component documentation only. */
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; color: var(--nv-text); background: white; font: 14px/1.65 var(--nv-font); }
+a { color: var(--nv-accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+:focus-visible { outline: 2px solid var(--nv-focus); outline-offset: 2px; }
+.top { border-bottom: 1px solid var(--nv-border); }
+.top-inner,.layout { margin: auto; max-width: 1300px; padding-inline: clamp(16px,4vw,60px); }
+.top-inner { height: 70px; display: flex; align-items: center; gap: 24px; }
+.brand { display: inline-flex; align-items: center; gap: 10px; color: var(--nv-text); font-size: 21px; font-weight: 700; letter-spacing: -.04em; }
+.brand:hover { text-decoration: none; }
+.mark { display: grid; place-items: center; width: 32px; height: 32px; background: var(--nv-brand); border-radius: 8px; }
+.edition { padding: 1px 8px; border-radius: 99px; font-size: 12px; color: var(--nv-accent); background: var(--nv-accent-soft); }
+.top-title { margin-left: auto; border-bottom: 2px solid var(--nv-brand); height: 100%; display: grid; align-items: center; color: var(--nv-accent); font-weight: 600; }
+.reference { color: var(--nv-muted); }
+.layout { display: grid; grid-template-columns: 202px minmax(0,1fr); column-gap: clamp(24px,4vw,66px); }
+aside { align-self: start; position: sticky; top: 0; max-height: 100vh; overflow: auto; padding: 30px 17px 40px 0; border-right: 1px solid var(--nv-border); }
+aside h2 { margin: 19px 0 4px 8px; font-size: 12px; font-weight: 650; color: var(--nv-muted); }
+aside a { display: block; padding: 6px 10px; margin-block: 1px; border-radius: 4px; color: var(--nv-text); font-size: 13px; }
+aside a:hover { background: var(--nv-surface-soft); text-decoration: none; }
+aside a[aria-current="page"] { color: var(--nv-accent); background: var(--nv-accent-soft); font-weight: 650; box-shadow: inset 3px 0 var(--nv-brand); }
+main { min-width: 0; padding: 34px 0 64px; max-width: 900px; }
+.trail { color: var(--nv-muted); font-size: 12px; }
+.trail span { padding-inline: 8px; color: #a8abb2; }
+h1 { font-size: clamp(27px,3vw,36px); line-height: 1.25; margin: 10px 0; letter-spacing: -.035em; }
+.lead { margin: 0 0 28px; font-size: 15px; color: var(--nv-muted); }
+article > h2 { font-size: 19px; margin: 26px 0 4px; font-weight: 600; }
+article > p:not(.lead) { margin: 0 0 12px; color: var(--nv-muted); }
+.example { border: 1px solid var(--nv-border-strong); border-radius: 6px; background: white; }
+.demo { padding: clamp(15px,2.4vw,30px); }
+.demo > .nv-row + .nv-row { margin-top: 14px; }
+.demo .nv-field { max-width: 380px; }
+.example > details { border-top: 1px solid var(--nv-border); }
+.example > details > summary { cursor: pointer; text-align: center; color: var(--nv-muted); padding: 9px; font-size: 12px; }
+.example > details > summary:hover { color: var(--nv-accent); background: var(--nv-accent-soft); }
+.example pre { overflow: auto; padding: 16px; margin: 0; background: var(--nv-surface-soft); font: 12px/1.6 ui-monospace, monospace; }
+.row-label { min-width: 38px; font-size: 12px; color: var(--nv-muted); }
+.mobile { display: none; }
+.output { display: block; color: var(--nv-muted); min-height: 1.65em; margin-top: 14px; font-size: 12px; }
+.demo-stack { display: grid; gap: 12px; }
+.demo .nv-card { padding: 16px; max-width: 340px; }
+.sample-ink { font-weight: 600; margin: 0; }
+.sample-note { margin: 4px 0 0; color: var(--nv-muted); }
+.swatches { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit,minmax(116px,1fr)); }
+.swatch { border: 1px solid var(--nv-border); border-radius: 5px; overflow: hidden; }
+.swatch i { display: block; height: 42px; background: var(--sample); }
+.swatch b,.swatch code { display: block; margin: 4px 9px; }
+.swatch code { color: var(--nv-muted); font-size: 11px; }
+.page-foot { border-top: 1px solid var(--nv-border); margin-top: 32px; padding-top: 16px; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+@media (max-width: 720px) {
+  .top-inner { height: 56px; gap: 10px; }
+  .top-title { border: 0; }
+  .reference { display: none; }
+  aside { display: none; }
+  .layout { display: block; }
+  .mobile { display: grid; margin: 16px 0; }
+  main { padding: 0 0 32px; }
+  .demo { padding: 14px; }
+  .demo .nv-row { gap: 7px; }
+  .row-label { flex-basis: 100%; }
+}

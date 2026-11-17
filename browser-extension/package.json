@@ -1,0 +1,11 @@
+{
+  "name": "navi-link",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "package": "node scripts/package.mjs",
+    "ui:check": "node scripts/check-ui.mjs"
+  }
+}

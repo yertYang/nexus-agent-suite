@@ -1,0 +1,32 @@
+services:
+  postgres:
+    ports: !reset []
+    volumes:
+      - database:/var/lib/postgresql
+  redis:
+    ports: !reset []
+    volumes:
+      - cache:/data
+  cpr-config-init:
+    image: ${CPR_IMAGE:?Locked CPR image required}
+    user: '0:0'
+    entrypoint: ['/bin/sh', '-ec', 'install -m 0600 -o 10001 -g 10001 /private-config.yaml /container-config/config.yaml']
+    volumes:
+      - ./config.yaml:/private-config.yaml:ro
+      - cpr-config:/container-config
+    restart: 'no'
+  codex-proxy-rs:
+    depends_on:
+      cpr-config-init:
+        condition: service_completed_successfully
+    configs: !reset []
+    volumes:
+      - cpr-config:/app/deploy:ro
+      - cpr-data:/app/.runtime/data
+      - cpr-logs:/app/.runtime/logs
+volumes:
+  database:
+  cache:
+  cpr-config:
+  cpr-data:
+  cpr-logs:

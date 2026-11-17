@@ -1,0 +1,10 @@
+{
+  "name": "表单填写与提交",
+  "steps": [
+    {"action":"goto","path":"/"},
+    {"action":"fill","selector":"[data-testid=name]","value":"Ada"},
+    {"action":"click","selector":"[data-testid=submit]"},
+    {"action":"expectText","selector":"[data-testid=result]","text":"Hello Ada"},
+    {"action":"screenshot"}
+  ]
+}

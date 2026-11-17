@@ -1,0 +1,8 @@
+{
+  "name": "qizhou-browser-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {"playwright-core": "1.61.1"},
+  "scripts": {"demo": "node browser-test.mjs --case case.example.json"}
+}

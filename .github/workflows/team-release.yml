@@ -1,0 +1,62 @@
+name: Team server release
+on:
+  pull_request:
+    paths: ['agent-workbench/**', 'design-system/navi-ui/**', '.github/workflows/team-release.yml']
+  push:
+    tags: ['team-v*']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: npm run ui:check
+      - run: docker build -t navi-team:check -f agent-workbench/deploy/team/Dockerfile agent-workbench
+
+  publish:
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/team-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select release version
+        id: names
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^team-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish versioned Linux image
+        id: image
+        uses: docker/build-push-action@v6
+        with:
+          context: agent-workbench
+          file: agent-workbench/deploy/team/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.names.outputs.image }}:${{ github.ref_name }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+      - name: Attach the deployment kit and exact digest
+        env:
+          IMAGE: ${{ steps.names.outputs.image }}@${{ steps.image.outputs.digest }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          kit=$(mktemp -d)
+          cp agent-workbench/deploy/team/{compose.yaml,site.env.example,update.sh} agent-workbench/docs/SERVER_RELEASE.md "$kit/"
+          printf 'NAVI_TEAM_IMAGE=%s\n' "$IMAGE" > "$kit/image.env"
+          tar czf navi-team-deploy.tgz -C "$kit" compose.yaml site.env.example update.sh SERVER_RELEASE.md image.env
+          sha256sum navi-team-deploy.tgz > SHA256SUMS
+          printf '团队服务器镜像：%s\n\n首次安装、更新和恢复步骤见包内 SERVER_RELEASE.md。\n' "$IMAGE" > "$kit/notes"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$kit/notes" navi-team-deploy.tgz SHA256SUMS

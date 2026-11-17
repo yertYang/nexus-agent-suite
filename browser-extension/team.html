@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Navi Link · 团队对话</title>
+    <link rel="stylesheet" href="ui/tokens.css" />
+    <link rel="stylesheet" href="ui/components.css" />
+    <link rel="stylesheet" href="team.css" />
+    <script type="module" src="team.js"></script>
+  </head>
+  <body>
+    <header>
+      <a href="panel.html">‹ 返回 Navi Link</a>
+      <h1>团队对话</h1>
+    </header>
+    <section id="connect" class="nv-card">
+      <h2>连接团队网站</h2>
+      <p>打开网站，登录后在「我的连接」生成插件配对码。密码只在网站中输入。</p>
+      <form id="pair">
+        <label
+          >团队网站地址<input
+            id="origin"
+            type="url"
+            placeholder="https://navi.example.com"
+            class="nv-input"
+            required /></label
+        ><button id="open" type="button" class="nv-button">打开网站获取配对码</button
+        ><label
+          >一次性插件配对码<input
+            id="code"
+            type="password"
+            autocomplete="off"
+            class="nv-input"
+            required /></label
+        ><button class="nv-button" data-variant="primary">绑定我的账号</button>
+      </form>
+    </section>
+    <section id="chat" class="nv-card" hidden>
+      <p id="account"></p>
+      <button id="disconnect" class="nv-button">断开连接</button
+      ><label>我的对话<select id="chats" class="nv-select"></select></label>
+      <div id="messages" aria-live="polite"></div>
+      <form id="compose">
+        <label>消息<textarea id="text" class="nv-textarea" maxlength="12000" required></textarea></label
+        ><button class="nv-button" data-variant="primary">发送</button>
+      </form>
+    </section>
+    <p id="status" role="status"></p>
+  </body>
+</html>

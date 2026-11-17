@@ -1,0 +1,146 @@
+--- a/apps/runner/src/filesystem/file-read.ts
++++ b/apps/runner/src/filesystem/file-read.ts
+@@ -9,6 +9,7 @@
+ import { resolveProjectPath } from "@localbridge/security";
+ import { probeBinaryAndEncoding } from "./binary.js";
+ import { sanitizeFsError } from "./errors.js";
++import { officeText } from "./office-text.js";
+ 
+ export const MAX_READ_LINES = 500;
+ export const DEFAULT_READ_LINES = 300;
+@@ -26,7 +27,7 @@
+ }
+ 
+ /**
+- * Reads a slice of lines from a UTF-8 text file.
++ * Reads a slice of lines from a UTF-8 text file or a bounded Office text projection.
+  * Opens strictly in read-only mode ("r"), verifies regular file status via fstat,
+  * probes for binary/non-UTF-8 content, strips UTF-8 BOM, and enforces strict window limits.
+  */
+@@ -77,8 +78,11 @@
+       );
+     }
+ 
+-    // Handle empty file
+-    if (stat.size === 0) {
++    const officeMatch = /\.(xlsx|docx)$/i.exec(resolved.relativePath);
++    const sourceFormat = officeMatch?.[1]?.toLowerCase() as "xlsx" | "docx" | undefined;
++
++    // Handle empty UTF-8 file
++    if (stat.size === 0 && !sourceFormat) {
+       return {
+         projectId,
+         path: resolved.relativePath,
+@@ -92,41 +96,40 @@
+       };
+     }
+ 
+-    // 6. Binary probe & strict UTF-8 decodability check
+-    probeBinaryAndEncoding(fd, stat.size);
+-
+-    // 7. Read full file content
++    // 6. Keep the existing binary/UTF-8 gate for every other extension.
++    if (!sourceFormat) probeBinaryAndEncoding(fd, stat.size);
++
++    // 7. Read and fingerprint the same bounded bytes for both projections.
+     const buffer = Buffer.alloc(stat.size);
+-    fs.readSync(fd, buffer, 0, stat.size, 0);
+-
+-    // Strengthened binary detection on full buffer
+-    if (buffer.includes(0x00)) {
+-      throw new LocalBridgeError(
+-        LocalBridgeErrorCode.BINARY_FILE,
+-        "Binary files are not supported"
+-      );
+-    }
+-
++    const count = fs.readSync(fd, buffer, 0, stat.size, 0);
++    if (count !== buffer.length) {
++      throw new LocalBridgeError(LocalBridgeErrorCode.FILE_CONFLICT, "File changed while being read");
++    }
+     const contentHash = `sha256:${crypto.createHash("sha256").update(buffer).digest("hex")}`;
+-
+-    let text: string;
+-    try {
+-      const decoder = new TextDecoder("utf-8", { fatal: true });
+-      text = decoder.decode(buffer);
+-    } catch {
+-      throw new LocalBridgeError(
+-        LocalBridgeErrorCode.FILE_ENCODING_UNSUPPORTED,
+-        "File contains invalid UTF-8 sequences"
+-      );
+-    }
+-
+-    // 8. Handle UTF-8 BOM if present
+-    if (text.charCodeAt(0) === 0xfeff) {
+-      text = text.slice(1);
+-    }
+-
+-    // 9. Split lines and process window
+-    const allLines = text.split(/\r?\n/);
++    let allLines: string[];
++    let source: Pick<FileReadResult, "sourceFormat" | "sourceWarnings" | "sourceTruncated"> = {};
++    if (sourceFormat) {
++      try {
++        const projection = officeText(buffer, sourceFormat);
++        allLines = projection.lines;
++        source = { sourceFormat, sourceWarnings: projection.warnings, sourceTruncated: projection.truncated };
++      } catch {
++        throw new LocalBridgeError(LocalBridgeErrorCode.FILE_ENCODING_UNSUPPORTED,
++          "Office document is invalid, encrypted, contains macros, or exceeds extraction limits");
++      }
++    } else {
++      if (buffer.includes(0x00)) {
++        throw new LocalBridgeError(LocalBridgeErrorCode.BINARY_FILE, "Binary files are not supported");
++      }
++      let text: string;
++      try {
++        text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
++      } catch {
++        throw new LocalBridgeError(LocalBridgeErrorCode.FILE_ENCODING_UNSUPPORTED, "File contains invalid UTF-8 sequences");
++      }
++      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
++      allLines = text.split(/\r?\n/);
++    }
+     const totalLines = allLines.length;
+     const startIndex = requestedStart - 1;
+ 
+@@ -136,6 +139,7 @@
+         path: resolved.relativePath,
+         encoding: "utf-8",
+         contentHash,
++        ...source,
+         startLine: requestedStart,
+         endLine: totalLines,
+         nextLine: null,
+@@ -187,6 +191,7 @@
+       path: resolved.relativePath,
+       encoding: "utf-8",
+       contentHash,
++      ...source,
+       startLine: requestedStart,
+       endLine,
+       nextLine,
+--- a/apps/server/src/mcp/tools/filesystem.ts
++++ b/apps/server/src/mcp/tools/filesystem.ts
+@@ -125,7 +125,7 @@
+     "localbridge_file_read",
+     {
+       description:
+-        "Read UTF-8 text file content lines with SHA-256 contentHash and pagination bounding from an authorized project or host drive (such as C盘 via projectId: 'drive-c').",
++        "Read UTF-8 text or bounded text projections of XLSX/DOCX with original SHA-256 contentHash and pagination from an authorized project or host drive (such as C盘 via projectId: 'drive-c').",
+       inputSchema: toMcpSchema(FileReadParamsSchema),
+       annotations: TOOL_ANNOTATIONS.localbridge_file_read,
+     },
+--- a/packages/protocol/src/runner/rpc.ts
++++ b/packages/protocol/src/runner/rpc.ts
+@@ -489,6 +489,9 @@
+     path: z.string(),
+     encoding: z.literal("utf-8"),
+     contentHash: z.string(),
++    sourceFormat: z.enum(["xlsx", "docx"]).optional(),
++    sourceWarnings: z.array(z.string()).optional(),
++    sourceTruncated: z.boolean().optional(),
+     startLine: z.number().int().min(1),
+     endLine: z.number().int().min(0),
+     nextLine: z.number().int().min(1).nullable(),

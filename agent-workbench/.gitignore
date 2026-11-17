@@ -1,0 +1,11 @@
+.runtime/
+node_modules/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+.DS_Store
+*.log
