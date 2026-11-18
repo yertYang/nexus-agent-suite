@@ -16,9 +16,12 @@ node_modules/
 **/deploy/team/data/
 **/deploy/team/backups/
 **/deploy/team/config/
+**/deploy/team/deployment/
+**/deploy/team/compose.override.yaml
 **/deploy/team/site.env
 **/deploy/team/image.env*
 site.env
+deployment.env
 image.env
 image.env.next.*
 # Generated bundles, local Git handoffs and captured browser screens stay on the workstation.

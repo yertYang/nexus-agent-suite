@@ -4,7 +4,7 @@ import { resolve, join } from 'node:path';
 import { chmod, readFile, stat } from 'node:fs/promises';
 import { RUNTIME, privateDir } from '../scripts/lib.mjs';
 import { Cpr, cprBaseUrl } from '../src/cpr.mjs';
-import { DeploymentManager } from '../src/deployments.mjs';
+import { TeamDeployments } from './deployments.mjs';
 import { TeamStore } from './store.mjs';
 import { createTeamSite, teamOrigin } from './site.mjs';
 import { hiddenInput } from './cli-input.mjs';
@@ -44,7 +44,7 @@ async function main() {
     if (!key) throw Error('模型 Key 文件为空');
     model = new Cpr({ url: cprBaseUrl(base), key });
   }
-  const deployments = new DeploymentManager({ file: join(directory, 'deployments.json') });
+  const deployments = new TeamDeployments(process.env.NAVI_TEAM_DEPLOYMENT_DIR);
   const route = createTeamSite({ db, origin, modelId, model, deployments });
   const expected = new URL(origin).host;
   const server = createServer(
@@ -69,10 +69,7 @@ async function main() {
       }
     }
   );
-  server.once('close', () => {
-    deployments.stop();
-    db.close();
-  });
+  server.once('close', () => db.close());
   server.on('error', () => {
     console.error('团队网站监听失败，请检查端口和系统权限。');
     process.exitCode = 1;

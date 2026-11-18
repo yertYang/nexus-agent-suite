@@ -14,6 +14,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '24' }
       - run: npm run ui:check
+      - run: node --test agent-workbench/team/deployments.test.mjs
       - run: docker build -t navi-team:check -f agent-workbench/deploy/team/Dockerfile agent-workbench
 
   publish:
@@ -54,9 +55,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           kit=$(mktemp -d)
-          cp agent-workbench/deploy/team/{compose.yaml,site.env.example,update.sh} agent-workbench/docs/SERVER_RELEASE.md "$kit/"
+          files=(compose.yaml site.env.example update.sh deploy-once.sh compose.deploy.yaml deployment.env.example navi-team-deploy@.service)
+          for file in "${files[@]}"; do cp "agent-workbench/deploy/team/$file" "$kit/"; done
+          cp agent-workbench/docs/SERVER_RELEASE.md "$kit/"
           printf 'NAVI_TEAM_IMAGE=%s\n' "$IMAGE" > "$kit/image.env"
-          tar czf navi-team-deploy.tgz -C "$kit" compose.yaml site.env.example update.sh SERVER_RELEASE.md image.env
+          tar czf navi-team-deploy.tgz -C "$kit" "${files[@]}" SERVER_RELEASE.md image.env
           sha256sum navi-team-deploy.tgz > SHA256SUMS
           printf '团队服务器镜像：%s\n\n首次安装、更新和恢复步骤见包内 SERVER_RELEASE.md。\n' "$IMAGE" > "$kit/notes"
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$kit/notes" navi-team-deploy.tgz SHA256SUMS

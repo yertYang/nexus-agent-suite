@@ -1,0 +1,16 @@
+[Unit]
+Description=Navi team deployment worker for %f
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%f
+EnvironmentFile=%f/deployment.env
+ExecStart=/bin/bash -c 'while :; do /bin/bash ./deploy-once.sh; sleep 5; done'
+Restart=always
+RestartSec=5s
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

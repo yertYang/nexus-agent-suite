@@ -145,17 +145,12 @@ export function createTeamSite({ db, origin, model, modelId, deployments }) {
               'SELECT u.name actor,a.action,a.target,a.at FROM audit a JOIN users u ON u.id=a.actor ORDER BY a.id DESC LIMIT 30'
             )
           );
-        if (p.startsWith('/api/admin/deployments') && deployments) {
+        if (deployments) {
           if (p === '/api/admin/deployments' && m === 'GET') return json(await deployments.read());
-          if (m === 'POST' && p === '/api/admin/deployments/config') {
-            const v = await deployments.save(body.config, body.revision);
-            db.log(s.uid, 'deployment.configure', v.revision);
-            return json(v);
-          }
           if (m === 'POST' && p === '/api/admin/deployments/jobs') {
-            const job = await deployments.start(body);
-            db.log(s.uid, 'deployment.' + job.action, job.id);
-            return json(job, 202);
+            const { id, created } = await deployments.start({ id: body.id, previousId: body.previousId });
+            if (created) db.log(s.uid, 'deployment.start', id);
+            return json({ id }, 202);
           }
         }
       }

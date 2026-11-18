@@ -7,11 +7,11 @@ scripts/*
 src/*
 !src/cpr.mjs
 !src/net.mjs
-!src/deployments.mjs
 !team/
 team/*
 !team/main.mjs
 !team/site.mjs
+!team/deployments.mjs
 !team/files.mjs
 !team/tasks.mjs
 !team/cli-input.mjs

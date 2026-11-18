@@ -73,7 +73,7 @@ function form(root, fields, submit, fn) {
     } else {
       input = el(type === 'area' ? 'textarea' : 'input', null, type === 'area' ? 'nv-textarea' : 'nv-input');
       if (type !== 'area') input.type = type;
-      input.required = !['panelUrl', 'content'].includes(key);
+      input.required = key !== 'content';
       if (type === 'password') {
         input.autocomplete =
           key === 'old' || (key === 'password' && !me) ? 'current-password' : 'new-password';
@@ -340,82 +340,85 @@ async function accounts(root) {
       el('p', new Date(e.at).toLocaleString() + ' · ' + e.actor + ' · ' + e.action + ' · ' + e.target)
     );
 }
-async function deployments(root) {
-  const data = await api('admin/deployments'),
-    config = data.config || {};
-  const c = card(root, '服务器部署目标');
-  form(
-    c,
-    [
-      ['name', '应用名称'],
-      ['sshHost', '服务器 SSH 别名'],
-      ['directory', '服务器应用绝对目录'],
-      ['project', '现有 Compose 项目名'],
-      ['composeFile', 'Compose 文件'],
-      ['panelUrl', '管理面板地址（可选）']
-    ].map(([k, v]) => [k, v, 'text', config[k] || (k === 'composeFile' ? 'compose.yaml' : '')]),
-    '保存部署目标',
-    async (config) => {
-      await api('admin/deployments/config', { config, revision: data.revision });
-      render();
+function deployments(root) {
+  const box = card(root, '部署操作');
+  const deploy = el('button', '一键部署', 'nv-button');
+  deploy.type = 'button';
+  deploy.dataset.variant = 'primary';
+  deploy.disabled = true;
+  const state = el('p', '正在读取部署状态…');
+  state.setAttribute('role', 'status');
+  box.append(deploy, state);
+  const recent = card(root, '最近部署');
+  const record = el('p');
+  recent.append(record);
+  const labels = {
+    queued: '等待服务器执行',
+    pulling: '正在拉取更新',
+    updating: '正在更新服务并检查就绪状态',
+    completed: '部署完成',
+    source_failed: '拉取更新失败，请联系运维人员。',
+    failed: '部署失败，请联系运维人员检查服务。',
+    unknown: '部署操作中断，结果待核对。'
+  };
+  const key = 'navi.team.deploy-request.' + me.name;
+  let pending = JSON.parse(sessionStorage.getItem(key) || 'null');
+  let data = null, submitting = false;
+  const forget = () => {
+    pending = null;
+    sessionStorage.removeItem(key);
+  };
+  function paint(message) {
+    const job = data?.job, running = ['queued', 'pulling', 'updating'].includes(job?.status);
+    deploy.disabled = submitting || !data?.enabled || running;
+    deploy.textContent = pending ? '核对部署请求' : '一键部署';
+    state.textContent = message || (!data ? '正在读取部署状态…' :
+      running && job.status !== 'queued' ? labels[job.status] :
+      !data.enabled ? '部署服务当前不可用，请联系运维人员。' :
+      running ? labels[job.status] :
+      job?.status === 'unknown' ? '请联系运维人员核对上一次部署。' :
+      '部署期间服务可能短暂中断。');
+    record.textContent = job
+      ? new Date(job.startedAt).toLocaleString() + ' · ' + labels[job.status]
+      : '暂无部署记录。';
+  }
+  async function refresh(duringSubmit = false) {
+    const next = await api('admin/deployments');
+    if (!root.isConnected || (submitting && !duringSubmit)) return;
+    data = next;
+    if (pending && (data.job?.id === pending.id || (data.job?.id ?? null) !== pending.previousId)) forget();
+    paint();
+  }
+  deploy.onclick = async () => {
+    if (deploy.disabled) return;
+    pending ??= { id: crypto.randomUUID(), previousId: data.job?.id ?? null };
+    sessionStorage.setItem(key, JSON.stringify(pending));
+    submitting = true;
+    paint('正在提交部署…');
+    try {
+      await api('admin/deployments/jobs', pending);
+      await refresh(true);
+    } catch (error) {
+      if (error.status >= 400 && error.status < 500) forget();
+      submitting = false;
+      if (root.isConnected) paint(pending ? '提交结果待确认，可核对同一次部署。' : error.message);
+      return;
     }
-  );
-  const d = card(root, '应用操作');
-  if (config.name) d.append(el('p', config.name + ' · ' + config.sshHost + ' · ' + config.project));
-  d.append(button('刷新操作记录', render));
-  for (const [action, title] of [
-    ['inspect', '检查容器'],
-    ['update', '更新镜像'],
-    ['restart', '重启应用']
-  ]) {
-    const b = button(title, async () => {
-      if (
-        action !== 'inspect' &&
-        !confirm(`${title}：${config.name} @ ${config.sshHost}？可能中断服务，不自动备份或回滚。`)
-      )
-        return;
-      const k = 'navi.team.deployment.' + me.name;
-      let receipt = JSON.parse(sessionStorage.getItem(k) || 'null');
-      if (
-        receipt &&
-        (receipt.revision !== data.revision || data.jobs.some((j) => j.id === receipt.requestId))
-      )
-        receipt = null;
-      if (receipt && receipt.action !== action) throw Error('上次提交未确认，请刷新记录或重试原操作。');
-      receipt ??= { action, revision: data.revision, requestId: crypto.randomUUID() };
-      sessionStorage.setItem(k, JSON.stringify(receipt));
-      try {
-        await api('admin/deployments/jobs', receipt);
-        sessionStorage.removeItem(k);
-      } catch (e) {
-        if (e.status >= 400 && e.status < 500) sessionStorage.removeItem(k);
-        throw e;
+    submitting = false;
+    if (root.isConnected) paint();
+  };
+  async function poll() {
+    try {
+      if (!submitting) await refresh();
+    } catch {
+      if (root.isConnected) {
+        data = null;
+        paint('暂时无法连接，正在重试。');
       }
-      render();
-    });
-    b.disabled =
-      !data.config ||
-      data.jobs.some((j) => j.status === 'running') ||
-      (action !== 'inspect' &&
-        !(
-          data.jobs[0]?.revision === data.revision &&
-          data.jobs[0]?.status === 'completed' &&
-          data.jobs[0]?.containers?.length
-        ));
-    d.append(b);
+    }
+    if (root.isConnected) timer = setTimeout(poll, 2000);
   }
-  if (config.panelUrl) {
-    const a = el('a', '打开管理面板');
-    a.href = config.panelUrl;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    d.append(a);
-  }
-  for (const j of data.jobs) {
-    d.append(el('p', j.target + ' · ' + j.action + ' · ' + j.status + ' · ' + (j.message || j.stage)));
-    for (const x of j.containers)
-      d.append(el('p', [x.service, x.image, x.state, x.health].filter(Boolean).join(' · ')));
-  }
+  void poll();
 }
 function render() {
   clearTimeout(timer);
