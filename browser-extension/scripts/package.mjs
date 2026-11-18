@@ -10,7 +10,7 @@ execFileSync(process.execPath, [join(project, "scripts", "check-ui.mjs")], { std
 const archive = join(project, "dist", `navi-link-${manifest.version}.zip`);
 const temp = mkdtempSync(join(tmpdir(), "nexus-extension-package-"));
 const files = ["manifest.json", "background.js", "content.js", "panel.js", "panel-bridge.js", "panel.html", "panel.css", "team.html", "team.js", "team.css",
-  "core/intent.js", "core/baidu-search.mjs", "core/direct-api.js", "core/direct-chat.js", "core/direct-tools.js", "core/browser.js", "core/mcp.js", "core/pair.js", "core/bridge.js", "core/page.js", "core/protocol.js", "README.md", "LICENSE", "NOTICE.md",
+  "core/intent.js", "core/baidu-search.mjs", "core/direct-api.js", "core/direct-chat.js", "core/direct-tools.js", "core/local-directory.js", "core/browser.js", "core/mcp.js", "core/pair.js", "core/bridge.js", "core/page.js", "core/protocol.js", "README.md", "LICENSE", "NOTICE.md",
   ...["tokens.css", "components.css", "marked-LICENSE", "marked.js", "reply.js", "chevron-down.svg", "manifest.json", "LICENSE"].map((file) => "ui/" + file),
   "icons/navi.svg", ...[16, 32, 48, 128].map((size) => "icons/icon" + size + ".png")];
 try {

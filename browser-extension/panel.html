@@ -11,7 +11,7 @@
   <script defer src="ui/reply.js"></script>
   <script defer src="core/intent.js"></script>
   <script defer src="panel-bridge.js"></script>
-  <script defer src="panel.js"></script>
+  <script type="module" src="panel.js"></script>
 </head>
 <body data-density="compact">
   <header class="panel-header">
@@ -30,7 +30,7 @@
       <a href="team.html" class="nv-button" data-variant="secondary">团队网站 · 账号对话</a>
       <label class="nv-field"><span class="nv-label">连接方式</span><select id="chat-mode" class="nv-select"><option value="direct">独立连接模型（无需 MCP）</option><option value="navi">使用本机 Navi</option></select></label>
       <div id="direct-settings" class="nv-stack">
-        <p class="help">连接支持 Responses API 的服务，即可聊天和操作网页。</p>
+        <p class="help">连接支持 Responses API 的服务，即可聊天、操作网页和读取授权的本地目录。</p>
         <label class="nv-field"><span class="nv-label">API Base URL</span><input id="direct-url" class="nv-input" type="url" placeholder="https://api.example.com/v1" autocomplete="off" spellcheck="false"></label>
         <label class="nv-field"><span class="nv-label">API Key <span id="direct-key-state" class="key-state"></span></span><input id="direct-key" class="nv-input" type="password" autocomplete="off" placeholder="输入 API Key"></label>
         <div class="nv-row actions"><button id="direct-save" class="nv-button" data-variant="primary" type="button">保存并连接</button><button id="direct-clear" class="nv-button" data-variant="ghost" type="button">移除连接</button></div>
@@ -105,7 +105,7 @@
       <div id="chat-empty" class="empty-chat">
         <img src="icons/navi.svg" alt="" width="38" height="38">
         <h2>与 Navi 对话</h2>
-        <p id="chat-empty-description">配置模型后即可聊天和操作网页；只有本机文件任务需要连接 Navi。</p>
+        <p id="chat-empty-description">配置模型后即可聊天、操作网页和读取授权的本地目录。</p>
         <button id="show-connections" type="button" class="nv-button" data-variant="secondary" data-size="sm">设置连接</button>
       </div>
     </div>

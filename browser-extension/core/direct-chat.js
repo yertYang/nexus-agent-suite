@@ -2,13 +2,14 @@
 import {DirectApi,cleanDirect,directOutput} from './direct-api.js';
 import {directTools,directArguments} from './direct-tools.js';
 import {executeBrowser} from './browser.js';
+import {directoryPermission,executeLocalFiles,loadDirectory} from './local-directory.js';
 import './intent.js';
 import {simpleSearchCall,searchReply} from './baidu-search.mjs';
 const STORE='navi.private.direct.runs';
 const final=new Set(['completed','cancelled','failed','limit_reached']);
 const uuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const callId=/^[A-Za-z0-9_.:-]{1,180}$/;
-const fail=message=>{throw Object.assign(new Error(message),{code:'DIRECT_REQUEST'});};
+const fail=(message,code='DIRECT_REQUEST')=>{throw Object.assign(new Error(message),{code});};
 const bytes=value=>new TextEncoder().encode(JSON.stringify(value)).byteLength;
 
 export class DirectChat {
@@ -28,7 +29,8 @@ export class DirectChat {
   }
   event(run,type,data={}) {run.events.push({seq:run.events.length+1,runId:run.id,type,time:Date.now(),data});}
   snapshot(run) {return {runId:run.id,status:run.status,projectId:null,projectSelected:false,model:run.model,prompt:run.prompt,previousRunId:run.previousRunId,
-    startedAt:run.startedAt,pending:run.pending,error:run.error,uncertain:run.uncertain,lastSeq:run.events.length,...(run.reasoningEffort?{reasoningEffort:run.reasoningEffort}:{}),...(run.needsLocal?{needsLocal:true}:{})};}
+    directoryId:run.directoryId ?? null,startedAt:run.startedAt,pending:run.pending,error:run.error,uncertain:run.uncertain,lastSeq:run.events.length,
+    ...(run.reasoningEffort?{reasoningEffort:run.reasoningEffort}:{}),...(run.needsLocalDirectory?{needsLocalDirectory:true}:{})};}
   persist() {
     while ((this.rows.length>20 || bytes(this.rows)>6_000_000) && this.rows.some(run=>final.has(run.status))) {
       const index=this.rows.findIndex((run,i)=>final.has(run.status)&&i<this.rows.length-1);
@@ -55,16 +57,22 @@ export class DirectChat {
       if(!prompt || prompt.length>16000 || !uuid.test(message.clientRequestId || '') || !config.models.some(model=>model.id===message.model))fail('请填写消息并选择可用模型。');
       const reasoningEffort=message.reasoningEffort || null;
       if(reasoningEffort && !config.models.find(model=>model.id===message.model)?.reasoningEfforts?.includes(reasoningEffort)) fail('此模型未声明支持所选思考强度，请刷新模型配置。');
-      const fingerprint=JSON.stringify([prompt,message.model,message.previousRunId || null,reasoningEffort]);
+      const directoryId=message.directoryId ?? null;
+      if(directoryId!==null && (typeof directoryId!=='string' || !uuid.test(directoryId))) fail('本地目录编号无效。');
+      const fingerprint=JSON.stringify([prompt,message.model,message.previousRunId || null,reasoningEffort,...(directoryId?[directoryId]:[])]);
       const prior=this.rows.find(run=>run.revision===config.revision&&run.clientRequestId===message.clientRequestId);
       if(prior){if(prior.fingerprint!==fingerprint)fail('此消息编号已用于其他请求。');return this.snapshot(prior);}
       if(this.active())fail('请先完成或停止当前任务。');
+      if(directoryId) {
+        const directory=await loadDirectory();
+        if(directory?.id!==directoryId || !await directoryPermission(directory)) fail('本地目录已更换或需要重新授权。','DIRECTORY_PERMISSION');
+      }
       let input=[],conversationId=crypto.randomUUID();
-      if(message.previousRunId){const previous=this.get(message.previousRunId,config);if(previous.status!=='completed'||previous.model!==message.model)fail('只能继续相同模型且已完成的对话。');input=structuredClone(previous.input);conversationId=previous.conversationId;}
+      if(message.previousRunId){const previous=this.get(message.previousRunId,config);if(previous.status!=='completed'||previous.model!==message.model || (previous.directoryId ?? null)!==directoryId)fail('请使用相同模型和目录继续对话，或开始新对话。');input=structuredClone(previous.input);conversationId=previous.conversationId;}
       input.push({role:'developer',content:'当前 UTC 时间：'+new Date().toISOString()},{role:'user',content:prompt});
       if(bytes(input)>450_000)fail('对话内容较长，请开始新对话。');
       const run={id:crypto.randomUUID(),revision:config.revision,clientRequestId:message.clientRequestId,fingerprint,model:message.model,prompt,input,conversationId,turnId:crypto.randomUUID(),
-        reasoningEffort,previousRunId:message.previousRunId || null,startedAt:Date.now(),status:'queued',events:[],queue:[],seen:[],round:0,count:0,pending:null};
+        reasoningEffort,directoryId,previousRunId:message.previousRunId || null,startedAt:Date.now(),status:'queued',events:[],queue:[],seen:[],round:0,count:0,pending:null};
       const search=simpleSearchCall(prompt,()=>crypto.randomUUID());
       if(search){
         run.searchQuery=JSON.parse(search.arguments).query;
@@ -101,6 +109,10 @@ export class DirectChat {
       this.event(run,'tool.result',{tool:call.name,callId:call.call_id,status:cleaned.ok?'ok':'error',output:cleaned});
       run.input.push({type:'function_call_output',call_id:call.call_id,output:JSON.stringify(cleaned)});run.queue.shift();run.pending=null;run.phase=null;
     };
+    const finishWithNotice=async text=>{
+      run.input.push({type:'message',role:'assistant',content:[{type:'output_text',text}]});
+      this.event(run,'model.text',{text,final:true});run.status='completed';this.event(run,'run.completed');await this.persist();
+    };
     try {
       while(!final.has(run.status)) {
         check();if(Date.now()-run.startedAt>8*60_000)throw new Error('本轮任务已超过时限。');
@@ -110,16 +122,32 @@ export class DirectChat {
           let args;
           try {args=directArguments(call);} catch(error){output(call,{ok:false,message:error.message});await this.persist();continue;}
           if(call.name==='navi_local_required') {
-            output(call,{ok:false,localConnectionRequired:true,message:'本机文件和目录需要可选本机工具连接；当前不支持整桌面控制。'});
+            output(call,{ok:false,localConnectionRequired:true,message:'此操作需要本机 Navi。'});
             while(run.queue.length)output(run.queue[0],{ok:false,message:'请先连接本机工具。'});
-            run.needsLocal=true;run.status='completed';
-            const text='本机文件和目录需要连接 Navi，再切换到本机模式处理；普通聊天和网页操作可继续独立使用。当前尚不支持整桌面控制。';
-            run.input.push({type:'message',role:'assistant',content:[{type:'output_text',text}]});this.event(run,'model.text',{text,final:true});this.event(run,'run.completed');await this.persist();return;
+            await finishWithNotice('在 Finder 打开目录、写入文件或运行项目测试，请在设置中连接 Navi 并切换到本机模式。Navi Link 尚不支持整桌面控制。');return;
           }
-          if(!call.decision){run.pending={kind:'workbench',tool:'navi_browser',callId:call.call_id,args};run.status='awaiting_approval';run.phase=null;this.event(run,'tool.proposed',{tool:call.name,callId:call.call_id,args});await this.persist();return;}
+          const localFile=call.name==='navi_local_files';
+          if(localFile && !run.directoryId) {
+            while(run.queue.length)output(run.queue[0],{ok:false,message:'请先连接本地目录。'});
+            run.needsLocalDirectory=true;
+            await finishWithNotice('请选择要访问的本地目录。');return;
+          }
+          if(!call.decision){
+            run.pending={kind:'workbench',tool:call.name,callId:call.call_id,args};
+            if(localFile)run.pending.modelOrigin=new URL(config.baseUrl).origin;
+            run.status='awaiting_approval';run.phase=null;this.event(run,'tool.proposed',{tool:call.name,callId:call.call_id,args});await this.persist();return;
+          }
           if(call.decision==='deny'){output(call,{ok:false,code:'APPROVAL_DENIED',message:'用户拒绝此操作，未执行。'});await this.persist();continue;}
-          run.status='running';run.phase='browser';this.event(run,'tool.started',{tool:call.name,callId:call.call_id});await this.persist();check();
-          try {const result=await this.browser(this.api,'direct-'+config.revision,args);check();output(call,result);}
+          run.status='running';run.phase=localFile?'local-file':'browser';this.event(run,'tool.started',{tool:call.name,callId:call.call_id});await this.persist();check();
+          try {
+            const result=localFile ? await executeLocalFiles(run.directoryId,args) : await this.browser(this.api,'direct-'+config.revision,args);
+            check();output(call,result);
+            if(localFile && result.code==='DIRECTORY_PERMISSION') {
+              while(run.queue.length)output(run.queue[0],{ok:false,message:'请重新授权本地目录。'});
+              run.needsLocalDirectory=true;
+              await finishWithNotice(result.message);return;
+            }
+          }
           catch(error){check();if(error.uncertain){run.uncertain=true;throw error;}output(call,{ok:false,message:cleanDirect(error.message,config.key)});}
           await this.persist();continue;
         }

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Navi Link",
   "version": "1.0.0",
-  "description": "独立配置模型，在浏览器侧栏聊天和操作网页；可选连接 Navi 使用本机文件工具。",
+  "description": "在浏览器侧栏聊天、操作网页、读取授权的本地目录；可选连接 Navi 使用项目工具。",
   "minimum_chrome_version": "116",
   "permissions": [
     "storage",

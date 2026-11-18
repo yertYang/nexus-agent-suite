@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import {directoryPermission,loadDirectory,saveDirectory} from './core/local-directory.js';
+
 (() => {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -8,6 +10,7 @@
   const screenshots = new Map();
   const s = { connection: null, context: null, authenticated: false, checking: false, reconnectRequired: false,
     generation: 0, chain: [], runningPoll: false, busy: false, model: "", effort:"", setupStatus: "", uncertainCreate: null, projectSelected:false, showProjectPicker:false };
+  let localDirectory, directoryGranted = false;
   const latest = () => s.chain.at(-1);
   const isActive = () => Boolean(latest() && !terminal.has(latest().run.status));
   const canBrowser = () => (s.context?.browserAutomation ?? s.context?.automation) === true;
@@ -82,7 +85,12 @@
     $("recover-chat").disabled = !s.authenticated || s.busy;
     $("stop-chat").hidden = !active;
     $("stop-chat").disabled = s.busy;
-    $("choose-project").disabled = !eligible() || s.busy || active;
+    const direct = s.context?.mode === "direct";
+    const choose = $("choose-project");
+    const chooseLabel = direct ? "本地目录" : "选择项目";
+    choose.disabled = !(direct ? s.authenticated : eligible()) || s.busy || active;
+    choose.setAttribute("aria-label",chooseLabel);
+    choose.title = chooseLabel;
     $("send-chat").hidden = active;
     $("chat-model").disabled = !s.authenticated || s.busy || active || !s.context?.models.length;
     $("chat-effort").disabled = s.busy || active;
@@ -92,7 +100,8 @@
     $("disconnect-chat").hidden = !s.authenticated || s.context?.mode==="direct";
     $("automation-grant").textContent=s.context?.mode==="direct" ? "独立模式 · 网页工具可用" : canBrowser() ? "已授权浏览器操作" : "本机模式 · 网页操作未授权";
     $("automation-grant").dataset.tone=canBrowser() ? "info" : "warning";
-    $("file-grant").hidden=!s.authenticated || !canFiles();
+    $("file-grant").hidden=!s.authenticated || !(direct ? directoryGranted : canFiles());
+    $("file-grant").textContent=direct ? "本地目录已连接" : "已授权本机文件操作";
     for (const id of ["chat-mode","direct-save","direct-clear"]) $(id).disabled=s.busy || active || (id==="direct-clear" && !s.connection?.directConfigured);
     $("disconnect-chat").disabled = s.busy;
     for (const control of document.querySelectorAll(".chat-approval button")) control.disabled = s.busy || !s.authenticated;
@@ -145,6 +154,7 @@
   }
   function actionLabel(tool,args) {
     if (tool==="navi_browser") return ({search:"百度搜索「"+args?.query+"」",open:"打开网页",read:"读取网页",fill:"填写网页",click:"点击网页元素"})[args?.action] || "浏览器操作";
+    if (tool==="navi_local_files") return args?.action==="list" ? "列出本地目录" : "读取本地文件";
     return tool==="navi_open_directory" ? "打开项目目录" : tool || "工具调用";
   }
   function operationHistory(item,open) {
@@ -190,7 +200,11 @@
     const card = mk("div", "nv-card chat-approval");
     card.append(mk("h2", "", pending.kind === "nexus" ? "Nexus 要求审批" : "确认此工具调用"),
       mk("p", "", pending.summary || actionLabel(pending.tool,pending.args)));
-    if (pending.tool==="navi_browser" && pending.args?.action==="search") card.append(mk("p","help","将打开 "+pending.args.url));
+    if (pending.tool==="navi_local_files") {
+      const name=localDirectory?.id===run.directoryId ? localDirectory.handle.name : "原授权目录";
+      card.append(mk("pre","",name + "/" + pending.args.path),
+        mk("p","help",(pending.args.action==="list" ? "目录列表" : "读取的文本") + "将发送给模型服务 " + pending.modelOrigin + "。"));
+    } else if (pending.tool==="navi_browser" && pending.args?.action==="search") card.append(mk("p","help","将打开 "+pending.args.url));
     else if (pending.args) card.append(mk("pre", "", JSON.stringify(pending.args, null, 2)));
     const actions = mk("div", "nv-row actions");
     if (pending.kind === "workbench") {
@@ -289,10 +303,58 @@
     }
     return card;
   }
+  async function refreshDirectory() {
+    const directory = await loadDirectory();
+    const granted = await directoryPermission(directory);
+    const changed = localDirectory?.id !== directory?.id || directoryGranted !== granted;
+    localDirectory = directory;
+    directoryGranted = granted;
+    return changed;
+  }
+  async function manageDirectory(action) {
+    if (s.busy || isActive() || s.context?.mode !== "direct") return;
+    const resume = action !== "disconnect" && latest()?.run.needsLocalDirectory ? latest().run.prompt : null;
+    let ready = false;
+    s.busy = true;
+    syncControls();
+    try {
+      if (action === "choose") {
+        if (!window.showDirectoryPicker) throw new Error("当前浏览器不支持选择目录，请使用 Chrome 或 Edge。");
+        const handle = await window.showDirectoryPicker({mode:"read"});
+        await saveDirectory({id:crypto.randomUUID(),handle});
+      } else if (action === "reauthorize") {
+        if (await localDirectory.handle.requestPermission({mode:"read"}) !== "granted") throw new Error("浏览器未授权访问此目录。");
+      } else {
+        await saveDirectory(null);
+      }
+      await refreshDirectory();
+      ready = directoryGranted;
+      s.showProjectPicker = !ready && action !== "disconnect";
+      status(ready ? "已连接目录「" + localDirectory.handle.name + "」。" : "本地目录已断开。");
+    } catch (error) {
+      if (error.name !== "AbortError") status(error.name === "SecurityError" ? "浏览器无法打开文件夹选择器，请重试。" : error.message, true);
+    } finally {
+      s.busy = false;
+      renderTranscript(true);
+    }
+    if (ready && resume) await submitPrompt(resume);
+  }
+  function localDirectoryChoice() {
+    const card=mk("section","nv-card nv-stack project-choice");
+    card.append(mk("h2","","连接本地目录"));
+    const description=localDirectory ? (directoryGranted ? "已连接「" : "需要重新授权「") + localDirectory.handle.name + "」。" : "选中文件夹后，可以列目录和读取文本。";
+    card.append(mk("p","",description));
+    const actions=mk("div","nv-row actions");
+    if (localDirectory && !directoryGranted) actions.append(button("重新授权","primary",()=>manageDirectory("reauthorize")));
+    actions.append(button(localDirectory ? "选择其他目录" : "选择文件夹",localDirectory ? "secondary" : "primary",()=>manageDirectory("choose")));
+    if (localDirectory) actions.append(button("断开目录","ghost",()=>manageDirectory("disconnect")));
+    card.append(actions);
+    return card;
+  }
   function projectChoice() {
     const card=mk("section","nv-card nv-stack project-choice");
     if (!s.context.project) {
-      card.append(mk("h2","","本机工具是可选连接"),mk("p","","聊天和网页操作无需连接。本地文件、目录任务请在连接方式中选择「使用本机 Navi」，再连接并授权项目。"),button("设置本机连接","secondary",discloseConnection));
+      card.append(mk("h2","","连接本机 Navi"),mk("p","","请连接本机工作台并授权项目。"),button("设置本机连接","secondary",discloseConnection));
       return card;
     }
     card.append(mk("h2","","选择本次对话的项目"),mk("p","","网页操作无需项目。文件操作只访问你在此选择并已授权的项目。"));
@@ -326,8 +388,8 @@
     if (!s.chain.length) {
       const desc = $("chat-empty-description") ?? empty.querySelector("p");
       desc.textContent = s.setupStatus || (s.authenticated && !s.context?.modelConfigured
-        ? (s.context?.mode==="direct" ? "在模型设置中填写 API 地址和 Key，即可聊天和操作网页，无需 MCP。" : "请在 Navi 工作台保存并连接 API URL 和 Key。")
-        : s.authenticated ? (canBrowser() ? "可以让我打开百度搜索或操作网页，需要本地文件时再选择项目。" : s.context?.testing ? "可以指定网址和相对目录，执行当前项目中的测试用例。" : "发送一条消息开始对话，需要本地文件时再选择项目。")
+        ? (s.context?.mode==="direct" ? "在模型设置中连接 API，开始聊天、操作网页或读取本地文件。" : "请在 Navi 工作台保存并连接 API URL 和 Key。")
+        : s.authenticated ? (s.context?.mode==="direct" ? "可以让我操作网页，或通过文件夹按钮连接本地目录。" : canBrowser() ? "可以让我操作网页，需要本地文件时再选择项目。" : s.context?.testing ? "可以指定网址和相对目录，执行当前项目中的测试用例。" : "发送一条消息开始对话，需要本地文件时再选择项目。")
         : "配置模型后即可聊天和操作网页，本机工具按需连接。");
       const cta = empty.querySelector("#show-connections");
       cta.hidden = s.authenticated && s.context?.modelConfigured;
@@ -369,7 +431,9 @@
       }
     }
     if (s.authenticated && s.context) {
-      if ((s.showProjectPicker || latest()?.run.needsProject || latest()?.run.needsLocal) && !s.projectSelected && !isActive()) fragment.append(projectChoice());
+      if (s.context.mode === "direct") {
+        if (!isActive() && (s.showProjectPicker || latest()?.run.needsLocalDirectory && !directoryGranted)) fragment.append(localDirectoryChoice());
+      } else if ((s.showProjectPicker || latest()?.run.needsProject) && !s.projectSelected && !isActive()) fragment.append(projectChoice());
       else if (s.projectSelected && s.context.project) fragment.append(mk("p","help","本次对话项目："+s.context.project.name));
     }
     transcript.replaceChildren(fragment);
@@ -393,6 +457,10 @@
       if (value.next === item.cursor) break;
       item.cursor = value.next;
     } while (item.cursor < (item.run.lastSeq ?? 0));
+    if (changed && item === latest() && item.run.needsLocalDirectory && s.context?.mode === "direct") {
+      await refreshDirectory().catch(() => {});
+      if (generation === s.generation) s.showProjectPicker = true;
+    }
     return changed;
   }
   async function restore(generation, pick = null) {
@@ -469,9 +537,10 @@
         s.projectSelected=false; s.showProjectPicker=false;
       }
       if (renew || recovered) status("");
+      const directoryChanged = info.mode === "direct" && !s.busy && await refreshDirectory().catch(() => false);
       if (!info.capabilities?.projectSelection) status("工作台仍是旧版本。请停止旧 Navi 后重新启动；仅刷新页面或再次双击启动器不会更新正在运行的服务。",true);
       renderContext();
-      if (renew || recovered || !s.chain.length) renderTranscript();
+      if (renew || recovered || directoryChanged || !s.chain.length) renderTranscript();
       if (renew || (recovered && !s.chain.length)) await restore(s.generation);
     } catch (error) { handleError(error); }
     finally {
@@ -516,12 +585,14 @@
     }
     const attempt = { draft, prompt: draft.trim(), model: s.model, startedAt: Date.now(), clientRequestId: crypto.randomUUID() };
     const last = latest()?.run;
-    const previousRunId = last?.status === "completed" && last.model === s.model ? last.runId : undefined;
+    const directoryId = s.context.mode === "direct" && directoryGranted ? localDirectory.id : null;
+    const sameDirectory = s.context.mode !== "direct" || (last?.directoryId ?? null) === directoryId;
+    const previousRunId = last?.status === "completed" && last.model === s.model && sameDirectory ? last.runId : undefined;
     const generation = s.generation;
     s.busy = true;
     syncControls();
     try {
-      const run = await ask("create", { prompt: draft, model: s.model, ...(s.context.mode==="direct" && s.effort ? {reasoningEffort:s.effort} : {}), previousRunId, clientRequestId: attempt.clientRequestId, projectSelected:s.projectSelected });
+      const run = await ask("create", { prompt: draft, model: s.model, ...(s.context.mode==="direct" ? {directoryId, ...(s.effort ? {reasoningEffort:s.effort} : {})} : {}), previousRunId, clientRequestId: attempt.clientRequestId, projectSelected:s.projectSelected });
       if (generation !== s.generation) return;
       if (typeof run?.runId !== "string" || run.projectId !== (s.context.project?.id ?? null)) {
         throw new Error("Navi 未返回有效的运行记录。");
@@ -535,7 +606,12 @@
       if (await collect(item, generation) && generation === s.generation) renderTranscript();
     } catch (error) {
       if (generation !== s.generation) return;
-      if (!error.code || ["BRIDGE_UNAVAILABLE", "BRIDGE_CONFLICT"].includes(error.code)) {
+      if (error.code === "DIRECTORY_PERMISSION") {
+        await refreshDirectory().catch(() => {});
+        s.showProjectPicker = true;
+        renderTranscript(true);
+        handleError(error);
+      } else if (!error.code || ["BRIDGE_UNAVAILABLE", "BRIDGE_CONFLICT"].includes(error.code)) {
         s.uncertainCreate = attempt;
         await recoverCreate(generation);
       } else handleError(error);
@@ -564,7 +640,7 @@
     if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) event.target.close();
   });
   $("choose-project").addEventListener("click",event=>{
-    if (!event.isTrusted || !eligible() || isActive()) return;
+    if (!event.isTrusted || $("choose-project").disabled) return;
     if (s.projectSelected && s.chain.length) { status("切换项目请先开始新对话。"); return; }
     s.showProjectPicker=!s.showProjectPicker; renderTranscript(true);
   });

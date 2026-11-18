@@ -697,7 +697,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     return chat ? handleChat(message) : panel ? handlePanel(message) : handlePage(message, page);
   })().then((data) => reply({ ok: true, data })).catch((error) => {
     reply({ ok: false, error: redactBridge(cleanDirect(String(error.message || "扩展请求失败。"),directConfig?.key)).slice(0, 400),
-      ...(error instanceof BridgeError ? { code: error.code } : {}) });
+      ...(error instanceof BridgeError || ["DIRECT_REQUEST","DIRECTORY_PERMISSION"].includes(error.code) ? { code: error.code } : {}) });
   });
   return true;
 });
