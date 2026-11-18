@@ -35,10 +35,20 @@
         <label class="nv-field"><span class="nv-label">API Key <span id="direct-key-state" class="key-state"></span></span><input id="direct-key" class="nv-input" type="password" autocomplete="off" placeholder="输入 API Key"></label>
         <div class="nv-row actions"><button id="direct-save" class="nv-button" data-variant="primary" type="button">保存并连接</button><button id="direct-clear" class="nv-button" data-variant="ghost" type="button">移除连接</button></div>
         <p id="direct-status" class="help" role="status"></p>
+        <section class="nv-stack" aria-label="本地目录">
+          <h3>本地目录</h3>
+          <p id="directory-state" class="help" role="status">未连接目录，可直接聊天。</p>
+          <div class="nv-row actions">
+            <button id="directory-choose" type="button" class="nv-button" data-size="sm">选择文件夹</button>
+            <button id="directory-reauthorize" type="button" class="nv-button" data-size="sm" hidden>重新授权</button>
+            <button id="directory-disconnect" type="button" class="nv-button" data-size="sm" hidden>断开目录</button>
+          </div>
+          <p id="directory-error" class="help" role="alert" hidden></p>
+        </section>
       </div>
       <p id="navi-mode-help" class="help" hidden>使用本机 Navi 已保存的模型和项目工具。独立聊天不需要连接此服务。</p>
     </section>
-    <details id="local-settings" class="local-settings"><summary>本机工具 <span>可选</span></summary><div class="local-content">
+    <details id="local-settings" class="local-settings" hidden><summary>本机工具 <span>可选</span></summary><div class="local-content">
     <section id="pairing" aria-label="Navi 连接">
       <div class="nv-row row"><h3>Navi 工作台</h3><span id="pair-tag" class="nv-status"></span></div>
       <p id="pair-status" class="connection-text" role="status">在 Navi 中选择一个项目，网页工具将默认使用只读权限。</p>

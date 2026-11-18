@@ -35,6 +35,8 @@
     el("chat-mode").value=data.chatMode || "direct";
     el("direct-settings").hidden=data.chatMode==="navi";
     el("navi-mode-help").hidden=data.chatMode!=="navi";
+    el("local-settings").hidden = data.chatMode !== "navi";
+    if (previousMode && previousMode !== data.chatMode) note("");
     if (document.activeElement!==el("direct-url")) el("direct-url").value=data.direct?.baseUrl || "";
     el("direct-key-state").textContent=data.direct?.configured ? "已保存" : "未设置";
     el("direct-clear").disabled=!data.direct?.configured;

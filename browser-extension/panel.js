@@ -54,6 +54,7 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
   }
   function discloseConnection() {
     if (!$("bridge-settings").open) $("bridge-settings").showModal();
+    if (s.connection?.chatMode === "direct") void refreshDirectory().then(syncControls).catch(() => {});
     (s.context?.mode==="direct" && !s.context.modelConfigured ? $("direct-url") : $("close-settings")).focus();
   }
   function handleError(error) {
@@ -102,6 +103,15 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
     $("automation-grant").dataset.tone=canBrowser() ? "info" : "warning";
     $("file-grant").hidden=!s.authenticated || !(direct ? directoryGranted : canFiles());
     $("file-grant").textContent=direct ? "本地目录已连接" : "已授权本机文件操作";
+    $("directory-choose").textContent = localDirectory ? "选择其他目录" : "选择文件夹";
+    $("directory-disconnect").hidden = !localDirectory;
+    $("directory-reauthorize").hidden = !localDirectory || directoryGranted;
+    $("directory-state").textContent = localDirectory
+      ? (directoryGranted ? "已连接目录「" : "需要重新授权目录「") + localDirectory.handle.name + "」。"
+      : "未连接目录，可直接聊天。";
+    for (const id of ["directory-choose", "directory-disconnect", "directory-reauthorize"]) {
+      $(id).disabled = !s.connection || s.busy || active;
+    }
     for (const id of ["chat-mode","direct-save","direct-clear"]) $(id).disabled=s.busy || active || (id==="direct-clear" && !s.connection?.directConfigured);
     $("disconnect-chat").disabled = s.busy;
     for (const control of document.querySelectorAll(".chat-approval button")) control.disabled = s.busy || !s.authenticated;
@@ -312,7 +322,8 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
     return changed;
   }
   async function manageDirectory(action) {
-    if (s.busy || isActive() || s.context?.mode !== "direct") return;
+    if (s.busy || isActive() || s.connection?.chatMode !== "direct") return;
+    $("directory-error").hidden = true;
     const resume = action !== "disconnect" && latest()?.run.needsLocalDirectory ? latest().run.prompt : null;
     let ready = false;
     s.busy = true;
@@ -332,12 +343,20 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
       s.showProjectPicker = !ready && action !== "disconnect";
       status(ready ? "已连接目录「" + localDirectory.handle.name + "」。" : "本地目录已断开。");
     } catch (error) {
-      if (error.name !== "AbortError") status(error.name === "SecurityError" ? "浏览器无法打开文件夹选择器，请重试。" : error.message, true);
+      if (error.name !== "AbortError") {
+        const message = error.name === "SecurityError" ? "浏览器无法打开文件夹选择器，请重试。" : error.message;
+        status(message, true);
+        $("directory-error").textContent = message;
+        $("directory-error").hidden = false;
+      }
     } finally {
       s.busy = false;
       renderTranscript(true);
     }
-    if (ready && resume) await submitPrompt(resume);
+    if (ready && resume) {
+      if ($("bridge-settings").open) $("bridge-settings").close();
+      await submitPrompt(resume);
+    }
   }
   function localDirectoryChoice() {
     const card=mk("section","nv-card nv-stack project-choice");
@@ -633,6 +652,11 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
   });
   $("show-connections").addEventListener("click", discloseConnection);
   $("open-settings").addEventListener("click", discloseConnection);
+  for (const action of ["choose", "reauthorize", "disconnect"]) {
+    $("directory-" + action).addEventListener("click", event => {
+      if (event.isTrusted) void manageDirectory(action);
+    });
+  }
   $("close-settings").addEventListener("click", () => $("bridge-settings").close());
   $("bridge-settings").addEventListener("click", event => {
     if (event.target !== $("bridge-settings")) return;

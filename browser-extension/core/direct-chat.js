@@ -124,7 +124,7 @@ export class DirectChat {
           if(call.name==='navi_local_required') {
             output(call,{ok:false,localConnectionRequired:true,message:'此操作需要本机 Navi。'});
             while(run.queue.length)output(run.queue[0],{ok:false,message:'请先连接本机工具。'});
-            await finishWithNotice('在 Finder 打开目录、写入文件或运行项目测试，请在设置中连接 Navi 并切换到本机模式。Navi Link 尚不支持整桌面控制。');return;
+            await finishWithNotice('在 Finder 打开目录、写入文件或运行项目测试，请在设置中选择「使用本机 Navi」，再点击「连接 Navi」。Navi Link 尚不支持整桌面控制。');return;
           }
           const localFile=call.name==='navi_local_files';
           if(localFile && !run.directoryId) {
