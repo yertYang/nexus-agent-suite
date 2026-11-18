@@ -48,14 +48,44 @@ export function directoryPath(path, action) {
   return parts;
 }
 
-export async function executeLocalFiles(directoryId, {action,path}) {
+async function editText(handle, before, after, signal) {
+  if (await handle.queryPermission({mode:'readwrite'}) !== 'granted') throw new Error('缺少文件写入权限。');
+  const stream = await handle.createWritable({mode:'exclusive'});
+  try {
+    const file = await handle.getFile();
+    if (file.size > maxTextBytes) throw new Error('仅支持修改 32,000 字节以内的文本。');
+    let text;
+    try { text = new TextDecoder('utf-8', {fatal:true, ignoreBOM:true}).decode(await file.arrayBuffer()); }
+    catch { throw new Error('仅支持修改 UTF-8 文本。'); }
+    if (/[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('仅支持修改 UTF-8 文本。');
+    const index = text.indexOf(before);
+    const unique = before ? index >= 0 && text.indexOf(before, index + 1) < 0 : text.length === 0;
+    if (!unique) {
+      throw new Error('原文没有唯一匹配，请重新读取文件并核对改动。');
+    }
+    const next = text.slice(0,index) + after + text.slice(index + before.length);
+    if (new TextEncoder().encode(next).length > maxTextBytes) throw new Error('修改后的文本超过 32,000 字节。');
+    await stream.write(next);
+    const current = await handle.getFile();
+    if (current.size !== file.size || current.lastModified !== file.lastModified) {
+      throw new Error('文件刚刚被更改，请重新读取后再试。');
+    }
+    signal?.throwIfAborted();
+    await stream.close();
+  } catch (error) {
+    await stream.abort().catch(() => {});
+    throw error;
+  }
+}
+
+export async function executeLocalFiles(directoryId, {action,path,before,after}, signal) {
   const directory = await loadDirectory();
   if (directory?.id !== directoryId || !await directoryPermission(directory)) {
     return {ok:false, code:'DIRECTORY_PERMISSION', message:'本地目录已更换、断开或需要重新授权。'};
   }
 
   const parts = directoryPath(path, action);
-  const filename = action === 'read' ? parts.pop() : null;
+  const filename = action === 'list' ? null : parts.pop();
   let handle = directory.handle;
   try {
     for (const part of parts) handle = await handle.getDirectoryHandle(part);
@@ -68,7 +98,12 @@ export async function executeLocalFiles(directoryId, {action,path}) {
       return {ok:true, path, entries, truncated:false};
     }
 
-    const file = await (await handle.getFileHandle(filename)).getFile();
+    const target = await handle.getFileHandle(filename);
+    if (action === 'edit') {
+      await editText(target,before,after,signal);
+      return {ok:true,path,modified:true};
+    }
+    const file = await target.getFile();
     const truncated = file.size > maxTextBytes;
     const data = await file.slice(0, maxTextBytes).arrayBuffer();
     let text;
@@ -86,6 +121,6 @@ export async function executeLocalFiles(directoryId, {action,path}) {
     if (error.name === 'NotFoundError' || error.name === 'TypeMismatchError') {
       return {ok:false, message:'没有找到对应的文件或目录，请核对相对路径。'};
     }
-    return {ok:false, message:'浏览器暂时无法读取此路径。'};
+    return {ok:false, message:action === 'edit' ? '文件修改失败：' + error.message : '浏览器暂时无法读取此路径。'};
   }
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Navi Link",
-  "version": "1.0.1",
-  "description": "在浏览器侧栏聊天、操作网页、读取授权的本地目录；可选连接 Navi 使用项目工具。",
+  "version": "1.0.2",
+  "description": "在浏览器侧栏聊天、操作网页、读取目录、修改已有文本；可选连接 Navi 使用项目工具。",
   "minimum_chrome_version": "116",
   "permissions": [
     "storage",

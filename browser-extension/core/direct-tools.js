@@ -5,9 +5,9 @@ const string={type:'string'};
 export const directTools=[
   {type:'function',name:'navi_browser',description:'操作当前浏览器：open 打开完整网址；search 在百度搜索 query；read 读取本次连接打开的标签页，返回文字和 selector；click/fill 使用读取到的 selector 点击/填写。read/click/fill 必须传 tabId 和最近观察到的完整 url，每次操作需用户确认。无需 MCP 或本地项目。',strict:false,
     parameters:{type:'object',properties:{action:{type:'string',enum:['open','search','read','click','fill']},url:string,query:string,tabId:{type:'integer'},selector:string,text:string},required:['action'],additionalProperties:false}},
-  {type:'function',name:'navi_local_files',description:'在用户通过浏览器选择的本地目录内列目录或读取 UTF-8 文本。list 列一个目录，根目录使用 .；read 读取一个文件。path 使用目录内相对路径。每次操作需用户批准，未连接目录时会提示用户选择。',strict:false,
-    parameters:{type:'object',properties:{action:{type:'string',enum:['list','read']},path:string},required:['action','path'],additionalProperties:false}},
-  {type:'function',name:'navi_local_required',description:'用户明确要求创建或修改本机文件、在 Finder 中打开目录、运行项目测试或控制桌面时，提示本机工具的连接方式和能力。列目录和读取文本使用 navi_local_files。',strict:false,parameters:{type:'object',properties:{},additionalProperties:false}}
+  {type:'function',name:'navi_local_files',description:'在用户通过浏览器选择的本地目录内列目录、读取或修改已有 UTF-8 文本。edit 用 after 替换唯一匹配的 before；未知原文先 read。list 列一个目录，根目录使用 .；read 读取一个文件。path 使用目录内相对路径。每次操作需用户批准，未连接目录时会提示用户选择。',strict:false,
+    parameters:{type:'object',properties:{action:{type:'string',enum:['list','read','edit']},path:string,before:string,after:string},required:['action','path'],additionalProperties:false}},
+  {type:'function',name:'navi_local_required',description:'用户明确要求创建新文件、在 Finder 中打开目录、运行项目测试或控制桌面时，提示本机工具的连接方式和能力。列目录和读取文本使用 navi_local_files。',strict:false,parameters:{type:'object',properties:{},additionalProperties:false}}
 ];
 export function directArguments(call) {
   if (typeof call.arguments!=='string' || call.arguments.length>16000) throw new Error('工具参数无效或过长。');
@@ -15,7 +15,11 @@ export function directArguments(call) {
   if (!args || typeof args!=='object' || Array.isArray(args)) throw new Error('工具参数必须是对象。');
   if (call.name==='navi_local_required') {if(Object.keys(args).length)throw new Error('本机连接请求不接收参数。');return args;}
   if (call.name==='navi_local_files') {
-    if (!['list','read'].includes(args.action) || Object.keys(args).some(key => !['action','path'].includes(key))) throw new Error('目录工具只支持列目录和读取文本。');
+    const edit = args.action === 'edit';
+    const fields = edit ? ['action','path','before','after'] : ['action','path'];
+    if (!['list','read','edit'].includes(args.action) || Object.keys(args).some(key => !fields.includes(key))) throw new Error('文件操作参数无效。');
+    if (edit && (typeof args.before !== 'string' || typeof args.after !== 'string' || args.before === args.after ||
+      /[\u0000-\u0008\u000e-\u001f]/.test(args.after) || !args.after.isWellFormed())) throw new Error('请提供不同的原文和替换文本。');
     directoryPath(args.path,args.action);
     return args;
   }

@@ -164,7 +164,7 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
   }
   function actionLabel(tool,args) {
     if (tool==="navi_browser") return ({search:"百度搜索「"+args?.query+"」",open:"打开网页",read:"读取网页",fill:"填写网页",click:"点击网页元素"})[args?.action] || "浏览器操作";
-    if (tool==="navi_local_files") return args?.action==="list" ? "列出本地目录" : "读取本地文件";
+    if (tool==="navi_local_files") return ({list:"列出本地目录",read:"读取本地文件",edit:"修改已有文件"})[args?.action];
     return tool==="navi_open_directory" ? "打开项目目录" : tool || "工具调用";
   }
   function operationHistory(item,open) {
@@ -212,7 +212,11 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
       mk("p", "", pending.summary || actionLabel(pending.tool,pending.args)));
     if (pending.tool==="navi_local_files") {
       const name=localDirectory?.id===run.directoryId ? localDirectory.handle.name : "原授权目录";
-      card.append(mk("pre","",name + "/" + pending.args.path),
+      card.append(mk("pre","",name + "/" + pending.args.path));
+      if (pending.args.action === "edit") {
+        card.append(mk("p","","原文"),mk("pre","",pending.args.before || "（空文件）"),
+          mk("p","","替换为"),mk("pre","",pending.args.after || "（删除上述原文）"));
+      } else card.append(
         mk("p","help",(pending.args.action==="list" ? "目录列表" : "读取的文本") + "将发送给模型服务 " + pending.modelOrigin + "。"));
     } else if (pending.tool==="navi_browser" && pending.args?.action==="search") card.append(mk("p","help","将打开 "+pending.args.url));
     else if (pending.args) card.append(mk("pre", "", JSON.stringify(pending.args, null, 2)));
@@ -221,6 +225,12 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
       for (const [action, label, variant] of [["deny", "拒绝", "secondary"], ["approve", "批准本次", "primary"]]) {
         const control = button(label, variant, async () => {
           try {
+            if (action === "approve" && pending.tool === "navi_local_files" && pending.args.action === "edit") {
+              if (localDirectory?.id !== run.directoryId) throw new Error("目录已更换，请拒绝此次修改。");
+              if (await localDirectory.handle.requestPermission({mode:"readwrite"}) !== "granted") {
+                throw new Error("浏览器未授予写入权限，文件未修改。");
+              }
+            }
             if (action === "approve" && pending.tool === "navi_browser" && ["read","click","fill"].includes(pending.args?.action)) {
               const origin=new URL(pending.args.url).origin+"/*";
               if (!(await chrome.permissions.request({origins:[origin]}))) throw new Error("未允许网站访问，此操作尚未批准。");
@@ -361,7 +371,7 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
   function localDirectoryChoice() {
     const card=mk("section","nv-card nv-stack project-choice");
     card.append(mk("h2","","连接本地目录"));
-    const description=localDirectory ? (directoryGranted ? "已连接「" : "需要重新授权「") + localDirectory.handle.name + "」。" : "选中文件夹后，可以列目录和读取文本。";
+    const description=localDirectory ? (directoryGranted ? "已连接「" : "需要重新授权「") + localDirectory.handle.name + "」。" : "选中文件夹后，可以列目录、读取和修改已有文本。";
     card.append(mk("p","",description));
     const actions=mk("div","nv-row actions");
     if (localDirectory && !directoryGranted) actions.append(button("重新授权","primary",()=>manageDirectory("reauthorize")));

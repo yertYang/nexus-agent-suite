@@ -21,8 +21,8 @@ export class DirectChat {
     const saved=(await this.api.storage.session.get(STORE))[STORE];
     this.rows=Array.isArray(saved)?saved:[];
     for (const run of this.rows) if (!final.has(run.status) && run.status!=='awaiting_approval') {
-      run.uncertain=run.phase==='browser';run.status='failed';run.pending=null;
-      run.error=run.uncertain?'浏览器后台已重启，操作结果未知；请核对页面，不会自动重复执行。':'浏览器后台已重启，本轮已停止；可开始新对话。';
+      run.uncertain=['browser','file-write'].includes(run.phase);run.status='failed';run.pending=null;
+      run.error=run.uncertain?'浏览器后台已重启，操作结果未知；请核对操作结果，不会自动重复执行。':'浏览器后台已重启，本轮已停止；可开始新对话。';
       this.event(run,'run.failed',{message:run.error,uncertain:run.uncertain});
     }
     await this.persist();
@@ -86,7 +86,7 @@ export class DirectChat {
       const events=run.events.slice(message.after,message.after+30);return {run:this.snapshot(run),events,next:events.at(-1)?.seq ?? message.after};
     }
     if(message.type==='chat.cancel') {
-      if(!final.has(run.status)){run.uncertain=run.phase==='browser';run.status='cancelled';run.pending=null;this.controllers.get(run.id)?.abort();this.event(run,'run.cancelled',{uncertain:run.uncertain});await this.persist();}
+      if(!final.has(run.status)){run.uncertain=['browser','file-write'].includes(run.phase);run.status='cancelled';run.pending=null;this.controllers.get(run.id)?.abort();this.event(run,'run.cancelled',{uncertain:run.uncertain});await this.persist();}
       return this.snapshot(run);
     }
     if(message.type==='chat.decision') {
@@ -124,7 +124,7 @@ export class DirectChat {
           if(call.name==='navi_local_required') {
             output(call,{ok:false,localConnectionRequired:true,message:'此操作需要本机 Navi。'});
             while(run.queue.length)output(run.queue[0],{ok:false,message:'请先连接本机工具。'});
-            await finishWithNotice('在 Finder 打开目录、写入文件或运行项目测试，请在设置中选择「使用本机 Navi」，再点击「连接 Navi」。Navi Link 尚不支持整桌面控制。');return;
+            await finishWithNotice('在 Finder 打开目录、创建新文件或运行项目测试，请在设置中选择「使用本机 Navi」，再点击「连接 Navi」。Navi Link 尚不支持整桌面控制。');return;
           }
           const localFile=call.name==='navi_local_files';
           if(localFile && !run.directoryId) {
@@ -138,9 +138,9 @@ export class DirectChat {
             run.status='awaiting_approval';run.phase=null;this.event(run,'tool.proposed',{tool:call.name,callId:call.call_id,args});await this.persist();return;
           }
           if(call.decision==='deny'){output(call,{ok:false,code:'APPROVAL_DENIED',message:'用户拒绝此操作，未执行。'});await this.persist();continue;}
-          run.status='running';run.phase=localFile?'local-file':'browser';this.event(run,'tool.started',{tool:call.name,callId:call.call_id});await this.persist();check();
+          run.status='running';run.phase=localFile ? (args.action==='edit' ? 'file-write' : 'local-file') : 'browser';this.event(run,'tool.started',{tool:call.name,callId:call.call_id});await this.persist();check();
           try {
-            const result=localFile ? await executeLocalFiles(run.directoryId,args) : await this.browser(this.api,'direct-'+config.revision,args);
+            const result=localFile ? await executeLocalFiles(run.directoryId,args,signal) : await this.browser(this.api,'direct-'+config.revision,args);
             check();output(call,result);
             if(localFile && result.code==='DIRECTORY_PERMISSION') {
               while(run.queue.length)output(run.queue[0],{ok:false,message:'请重新授权本地目录。'});
