@@ -32,18 +32,19 @@ export class TeamDeployments {
   }
 
   async read() {
-    if (!this.request) return { enabled: false, job: null };
+    if (!this.request) return { enabled: false, reason: 'unconfigured', job: null };
     try {
       const seen = await stat(this.heartbeat).catch(error => {
         if (error.code !== 'ENOENT') throw error;
         return null;
       });
       const enabled = Boolean(seen && Date.now() - seen.mtimeMs < 30_000);
+      const availability = enabled ? { enabled } : { enabled, reason: 'offline' };
       const request = await readRequest(this.request);
-      if (!request) return { enabled, job: null };
+      if (!request) return { ...availability, job: null };
       const [finishedId, stage] = (await readOptional(this.result)).trimEnd().split(' ');
       const status = finishedId === request.id && stages.has(stage) ? stage : 'queued';
-      return { enabled, job: { ...request, status } };
+      return { ...availability, job: { ...request, status } };
     } catch {
       throw new AppError('部署状态暂时无法读取。', 503);
     }

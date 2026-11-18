@@ -26,7 +26,7 @@ Navi 有两个独立应用项目：工作台和 Chrome 右侧对话扩展。工�
 
 [团队网站使用与部署](agent-workbench/docs/TEAM_SITE.md)包含 HTTPS 配置、模型连接、插件配对及目录任务步骤。当前仓库提供实现与验收记录，不代表已经发布公网网站。本机模式仍可独立使用。
 
-从 GitHub 首次部署或更新团队网站，见[发布、安装、一键部署与恢复](agent-workbench/docs/SERVER_RELEASE.md)。推送 `team-vX.Y.Z` 标签后，发布工作流检查 UI 并构建 GHCR 镜像与部署包。Linux 主机启用部署服务后，管理员可在「部署管理」点击「一键部署」，由主机按私有配置拉取 Docker 镜像或 GitHub Release，停服备份后按镜像摘要更新原站点。页面仅展示部署状态和最近一次结果。需要回退时，`update.sh --restore` 一起恢复旧镜像和对应数据，并保留回退前的数据。Chrome 扩展和桌面工作台分别更新。
+从 GitHub 首次部署或更新团队网站，见[发布、安装、一键部署与恢复](agent-workbench/docs/SERVER_RELEASE.md)。推送 `team-vX.Y.Z` 标签后，发布工作流检查 UI 并构建 GHCR 镜像与部署包。Linux 发布包的默认安装命令 `sudo bash install.sh` 会启用并检查部署服务。安装完成后，管理员可在「部署管理」点击「一键部署」，由主机按私有配置拉取 Docker 镜像或 GitHub Release，停服备份后按镜像摘要更新原站点。页面仅展示部署状态和最近一次结果。需要回退时，`update.sh --restore` 一起恢复旧镜像和对应数据，并保留回退前的数据。Chrome 扩展和桌面工作台分别更新。
 
 ## 开始使用
 

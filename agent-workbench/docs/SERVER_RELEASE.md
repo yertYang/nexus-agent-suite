@@ -4,22 +4,30 @@
 
 在自己的 GitHub 仓库启用 Actions，允许发布工作流写入 Packages 和 Releases。提交源码后，推送一个新标签（例如 `git tag team-v1.0.0`、`git push origin team-v1.0.0`）；普通 push 不触发生产发布。工作流生成 linux/amd64 和 linux/arm64 镜像，在 Release 列出精确摘要。私有包需用执行拉包的 Docker 账号登录 GHCR，仅授予读取包权限。
 
-首次安装：从同一 Release 下载 `navi-team-deploy.tgz` 和 `SHA256SUMS`，执行 `sha256sum -c SHA256SUMS`。通过后，将部署包解压到 root 管理的空目录，在该目录执行：
+## 默认安装
+
+在使用 systemd 的 Linux 主机上准备 Docker Compose v2、GNU coreutils 和 util-linux。私有镜像需要给主机的 root 账号配置 GHCR 读取权限。从同一 Release 下载 `navi-team-deploy.tgz` 和 `SHA256SUMS`，在下载目录校验后，将发布包解压到 root 管理的空安装目录。以下以 `/opt/navi-team` 为例。
 
 ```sh
-cp site.env.example site.env
-sudo install -d -m 0700 -o 1000 -g 1000 data config
+sha256sum -c SHA256SUMS &&
+  sudo install -d -m 0755 /opt/navi-team &&
+  sudo tar --no-same-owner -xzf navi-team-deploy.tgz -C /opt/navi-team
+cd /opt/navi-team
+sudo install -m 0600 site.env.example site.env
+sudoedit site.env
 ```
 
-将 `site.env` 的外部地址改为实际 HTTPS 域名。需要聊天时设置模型地址、模型 ID 和容器内密钥文件路径，将密钥单独放入绑定挂载的 `config/`，文件归 UID 1000 所有、权限 0600。反向代理须保留原始 Host 并转发到配置的环回端口（默认 17890）。
+在 `site.env` 填写实际的 HTTPS 站点地址。反向代理须保留原始 Host，转发到配置的环回端口（默认 17890）。需要聊天时配置模型地址、模型 ID 和容器内密钥路径；提前创建 `config/` 并放入归 UID 1000 所有、权限 0600 的密钥文件。
 
 ```sh
-sudo docker compose --env-file image.env pull team
-sudo docker compose --env-file image.env run --rm team init admin
-sudo docker compose --env-file image.env up -d --wait team
+sudo bash install.sh
 ```
 
-初始化时在终端输入首个管理员密码。更新健康的已有实例时，用新发布页给出的完整镜像引用（同一仓库，含 `@sha256:` 摘要）作为 `sudo ./update.sh` 的唯一参数。脚本在停服后备份数据与旧镜像引用，切换版本，等待健康检查。配置和模型密钥需自行私下备份。
+首次安装会提示设置管理员密码，随后启动网站、启用开机运行的主机部署服务，并从站点容器检查心跳和请求目录写权限。看到安装成功提示后，使用管理员账号登录「部署管理」即可点击「一键部署」。默认从当前 GHCR 仓库的 `team-stable` 标签拉取更新。发布工作流在创建团队 Release 后更新此标签，主机将其解析为镜像摘要并执行备份、更新和就绪检查。
+
+## 已有站点和手动更新
+
+在原安装目录复用原有的 `image.env`、`site.env`、`data/`、`config/`、`deployment.env` 和自定义 override。旧版站点先用原来的 `update.sh` 升级到带部署管理的团队镜像。从已校验的新包复制 `install.sh`、`update.sh`、`deploy-once.sh` 和 `navi-team-deploy@.service`。使用标准 Compose 的站点同时复制新版 `compose.yaml`；自定义 Compose 的站点合并其中的部署目录环境变量及两项部署挂载。然后在原目录运行 `sudo bash install.sh`。重复运行会复用已有账号和部署来源，安装中断后也可以重试。
 
 每次用新标签发布；不要用新部署包覆盖线上 `image.env`、`site.env` 或 `data/`。先在维护窗口暂停对外流量和设备任务，留出完整备份空间，再在原安装目录执行：
 
@@ -41,31 +49,16 @@ sudo ./update.sh --restore backups/实际备份目录
 
 ## 启用团队网站一键部署
 
-先按上文安装或手动更新到支持一键部署的团队镜像。使用已校验的部署包，将 `deploy-once.sh`、`compose.deploy.yaml`、`deployment.env.example` 和 `navi-team-deploy@.service` 放入原安装目录。站点安装目录、运行脚本和主机配置须由 root 管理。Linux 主机需要 systemd、Docker Compose、GNU coreutils、util-linux，GitHub 模式还需要 `gh`。
+默认安装会生成仅 root 可读的 `deployment.env`。运维人员可在主机修改来源：
 
-在主机上创建独立的请求和结果目录，让部署任务及最近结果在容器重建和站点数据恢复后仍可读取。
+- `NAVI_DEPLOY_SOURCE=docker` 使用 `NAVI_DEPLOY_IMAGE` 指定同仓库的 Docker 标签或镜像摘要。默认使用 `team-stable`，也可指定特定发布版本。
+- `NAVI_DEPLOY_SOURCE=github` 使用 `NAVI_DEPLOY_GITHUB_REPO=组织/仓库`。主机须安装并认证 GitHub CLI。部署服务下载 Latest 正式 `team-vX.Y.Z` Release 的部署包和校验和，校验后读取同仓库的镜像摘要。
 
-```sh
-sudo install -d -m 0755 deployment deployment/status
-sudo install -d -o 1000 -g 1000 -m 0700 deployment/requests
-sudo install -m 0600 deployment.env.example deployment.env
-```
-
-运维人员在 `deployment.env` 选定一种来源：
-
-- `NAVI_DEPLOY_SOURCE=docker`。用 `NAVI_DEPLOY_IMAGE` 指定当前安装所用 GHCR 仓库的标签或镜像摘要。每次点击都会拉取该引用。固定标签和固定摘要继续对应指定版本，发布新版本后可在主机修改引用。
-- `NAVI_DEPLOY_SOURCE=github`。用 `NAVI_DEPLOY_GITHUB_REPO` 指定 `组织/仓库`，使用仓库在 GitHub 标记为 Latest 的正式 `team-vX.Y.Z` Release。主机下载 `navi-team-deploy.tgz` 与 `SHA256SUMS`，核对校验和并从包中读取 `image.env` 的同仓库镜像摘要。
-
-私有镜像使用主机部署服务所在账号的 Docker 登录；GitHub 模式也需给该账号配置 GitHub CLI 的读取权限。凭据留在主机私有配置。网站容器只写入部署请求，并从只读挂载读取阶段结果。
-
-首次启用时，在没有 `compose.override.yaml` 的安装目录将 `compose.deploy.yaml` 复制为 `compose.override.yaml`。已有 override 时，将部署服务所需的环境变量和两项挂载合并进去，保留原配置。随后让新挂载生效并启动主机服务：
+主机部署任务在网站容器重建期间继续执行。修改来源后，等当前任务结束，在原安装目录执行以下命令载入配置：
 
 ```sh
-sudo docker compose --env-file image.env up -d --pull never --wait team
-sudo install -m 0644 navi-team-deploy@.service /etc/systemd/system/
-sudo systemctl daemon-reload
 instance=$(systemd-escape --path "$(pwd -P)")
-sudo systemctl enable --now "navi-team-deploy@$instance.service"
+sudo systemctl restart "navi-team-deploy@$instance.service"
 ```
 
-管理员登录后打开「部署管理」，点击「一键部署」。页面自动读取部署进度，更新时的短暂断连会自动重试。主机更新沿用同一套备份与就绪检查。结果显示失败或中断时，运维人员可在主机执行 `sudo journalctl -u "navi-team-deploy@$instance.service"` 查看详情，并按上文恢复流程处理。主机服务会把中断的旧请求标记为结果待核对。修改 `deployment.env` 后，请等当前任务结束再重启主机部署服务以载入新配置。
+页面提示「此站点尚未启用一键部署」时，核对是否已使用带部署挂载的 Compose 配置并完成默认安装。「部署服务离线」表示站点已配置部署目录，正在等待主机心跳。可用 `sudo journalctl -u "navi-team-deploy@$instance.service"` 检查主机日志。更新失败时按上文的恢复步骤处理。

@@ -39,6 +39,8 @@ test('deployment receipts survive a restart and concurrent submissions stay sing
   await utimes(join(directory, 'status', 'worker'), past, past);
   assert.deepEqual(await restarted.start({ ...second, previousId: first.id }), { id: second.id, created: false });
   assert.equal((await restarted.read()).enabled, false);
+  assert.equal((await restarted.read()).reason, 'offline');
+  assert.deepEqual(await new TeamDeployments().read(), { enabled: false, reason: 'unconfigured', job: null });
 });
 
 test('team deployment routes expose only receipts and require same-origin administrator access', async t => {

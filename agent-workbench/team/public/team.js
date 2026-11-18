@@ -374,7 +374,7 @@ function deployments(root) {
     deploy.textContent = pending ? '核对部署请求' : '一键部署';
     state.textContent = message || (!data ? '正在读取部署状态…' :
       running && job.status !== 'queued' ? labels[job.status] :
-      !data.enabled ? '部署服务当前不可用，请联系运维人员。' :
+      !data.enabled ? (data.reason === 'unconfigured' ? '此站点尚未启用一键部署。' : '部署服务离线，正在等待恢复。') :
       running ? labels[job.status] :
       job?.status === 'unknown' ? '请联系运维人员核对上一次部署。' :
       '部署期间服务可能短暂中断。');

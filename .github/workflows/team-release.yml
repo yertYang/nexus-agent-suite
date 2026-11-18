@@ -15,6 +15,16 @@ jobs:
         with: { node-version: '24' }
       - run: npm run ui:check
       - run: node --test agent-workbench/team/deployments.test.mjs
+      - name: Verify the default installation layout
+        working-directory: agent-workbench/deploy/team
+        run: |
+          bash -n install.sh
+          cp site.env.example site.env
+          NAVI_TEAM_IMAGE=navi-team:check docker compose -f compose.yaml config --format json |
+            jq -e '.services.team | .environment.NAVI_TEAM_DEPLOYMENT_DIR as $dir |
+              ($dir == "/run/navi-deployment") and
+              any(.volumes[]; .target == ($dir + "/requests") and (.read_only != true)) and
+              any(.volumes[]; .target == ($dir + "/status") and .read_only == true)'
       - run: docker build -t navi-team:check -f agent-workbench/deploy/team/Dockerfile agent-workbench
 
   publish:
@@ -55,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           kit=$(mktemp -d)
-          files=(compose.yaml site.env.example update.sh deploy-once.sh compose.deploy.yaml deployment.env.example navi-team-deploy@.service)
+          files=(compose.yaml site.env.example install.sh update.sh deploy-once.sh deployment.env.example navi-team-deploy@.service)
           for file in "${files[@]}"; do cp "agent-workbench/deploy/team/$file" "$kit/"; done
           cp agent-workbench/docs/SERVER_RELEASE.md "$kit/"
           printf 'NAVI_TEAM_IMAGE=%s\n' "$IMAGE" > "$kit/image.env"
@@ -63,3 +73,8 @@ jobs:
           sha256sum navi-team-deploy.tgz > SHA256SUMS
           printf '团队服务器镜像：%s\n\n首次安装、更新和恢复步骤见包内 SERVER_RELEASE.md。\n' "$IMAGE" > "$kit/notes"
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-file "$kit/notes" navi-team-deploy.tgz SHA256SUMS
+      - name: Point the team update channel at the released image
+        env:
+          IMAGE: ${{ steps.names.outputs.image }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: docker buildx imagetools create --tag "$IMAGE:team-stable" "$IMAGE@$DIGEST"
