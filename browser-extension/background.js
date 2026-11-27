@@ -615,10 +615,12 @@ async function directSettings(message) {
       if (!(await chrome.permissions.contains({origins:[new URL(baseUrl).origin+"/*"]}))) fail("请先允许访问该模型服务地址。");
       let models;
       try {models=await new DirectApi({baseUrl,key}).models();} catch(error){throw new Error(cleanDirect(error.message,key));}
-      const selected=message.defaultModel || models[0].id;
+      const sameConnection=baseUrl===directConfig?.baseUrl && key===directConfig?.key;
+      const previousDefault=sameConnection && models.find(model=>model.id===directConfig.defaultModel);
+      const selected=message.defaultModel || previousDefault?.id || models[0].id;
       if (!models.some(model=>model.id===selected)) fail("默认模型不在服务返回的列表中。");
-      const next={baseUrl,key,models,defaultModel:selected,revision:crypto.randomUUID()};
-      await engine().reset();
+      const next={baseUrl,key,models,defaultModel:selected,revision:sameConnection ? directConfig.revision : crypto.randomUUID()};
+      if (!sameConnection) await engine().reset();
       await chrome.storage.local.set({[DIRECT]:next,[MODE]:"direct"});directConfig=next;chatMode="direct";
     } else if (message.type==="popup.direct.clear") {
       await engine().reset();await chrome.storage.local.remove(DIRECT);await chrome.storage.local.set({[MODE]:"direct"});directConfig=null;chatMode="direct";

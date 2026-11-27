@@ -20,7 +20,7 @@ export function cleanDirect(value,key) {
 export function modelEfforts(model) {
   const values = model?.supported_reasoning_efforts ?? model?.reasoning_efforts;
   return Array.isArray(values) ? [...new Set(values.map(value => typeof value === 'string' ? value : value?.effort)
-    .filter(value => ['none','minimal','low','medium','high','xhigh'].includes(value)))] : [];
+    .filter(value => ['none','minimal','low','medium','high','xhigh','max'].includes(value)))] : [];
 }
 
 async function readResponse(response,signal) {

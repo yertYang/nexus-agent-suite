@@ -1,15 +1,15 @@
 # Navi
 
-Navi 有两个独立应用项目：工作台和 Chrome 右侧对话扩展。工作台提供本机模式和单独启动的团队网站。无需安装 Codex。两者共用独立维护、可打包发布的 Navi UI 组件库。
+Navi 有两个独立应用项目：工作台和 Chrome／Edge 侧栏对话扩展。工作台提供本机模式和单独启动的团队网站。无需安装 Codex。两者共用独立维护、可打包发布的 Navi UI 组件库。
 
 ## 下载安装
 
 | 安装包 | 安装方式 |
 | --- | --- |
-| [下载 Navi Link 浏览器插件（ZIP）](downloads/navi-link.zip?raw=true) | 解压到固定目录。在 Chrome 的 `chrome://extensions` 或 Edge 的 `edge://extensions` 打开开发者模式，点「加载已解压的扩展程序」，选择含 `manifest.json` 的目录。需要 Chromium 116+。 |
+| [下载 Navi Link 浏览器插件（ZIP）](downloads/navi-link.zip?raw=true) | Chrome 和 Edge 共用此 ZIP。解压到固定目录。在 Chrome 的 `chrome://extensions` 或 Edge 的 `edge://extensions` 打开开发者模式，点「加载已解压的扩展程序」，选择含 `manifest.json` 的目录。需要 Chromium 116+。 |
 | [下载 Navi 桌面工作台（macOS ZIP）](downloads/navi-desktop-macos.zip?raw=true) | 支持 macOS 12+，Intel 和 Apple 芯片。先安装 Node.js 24+ 并确保 Corepack 可用，再完整解压到可写目录，打开其中的 `Navi.app`。保留旁边的 `agent-workbench/`；首次启动需要联网准备依赖。 |
 
-桌面包使用本地签名，未经 Apple 公证。[下载校验文件](downloads/SHA256SUMS)；把它与两个 ZIP 放在同一目录后，可运行 `shasum -a 256 -c SHA256SUMS`。维护者从套件根目录运行 `npm run clients:pack`（需要 Python 3、Node.js 24+ 和 zip）即可重新生成这两个下载文件。
+桌面包使用本地签名，未经 Apple 公证。[下载校验文件](downloads/SHA256SUMS)；把它与两个 ZIP 放在同一目录后，可运行 `shasum -a 256 -c SHA256SUMS`。维护者从套件根目录运行 `npm run clients:pack`（需要 Python 3、Node.js 24+ 和 zip）即可重新生成这两个下载文件。只打包插件可在根目录运行 `npm run package`。
 
 | 项目 | 用途 |
 | --- | --- |

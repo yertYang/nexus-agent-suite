@@ -142,7 +142,7 @@ import {directoryPermission,loadDirectory,saveDirectory} from './core/local-dire
   function renderEffort() {
     const select = $("chat-effort");
     const options = s.context?.mode === "direct" ? s.context.models.find(model => model.id === s.model)?.reasoningEfforts || [] : [];
-    const labels = {none:"不思考",minimal:"极低",low:"低",medium:"中",high:"高",xhigh:"极高"};
+    const labels = {none:"不思考",minimal:"极低",low:"低",medium:"中",high:"高",xhigh:"极高",max:"最高"};
     if (!options.includes(s.effort)) s.effort = "";
     select.replaceChildren(new Option("默认强度", ""), ...options.map(value => new Option("思考 · " + labels[value], value)));
     select.value = s.effort;

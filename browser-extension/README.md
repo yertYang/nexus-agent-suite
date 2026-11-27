@@ -1,6 +1,6 @@
 # Navi Link
 
-独立的 Chromium Manifest V3 浏览器扩展。点击工具栏图标打开原生侧栏，在输入区选择模型，使用上箭头发送、方块停止。普通聊天、网页操作以及列出和读取通过浏览器授权的本地目录，只需 Navi Link 和支持 Responses 的模型 API。需要新建文件、Finder 或项目用例测试时，可连接 Navi 工作台。也保留 ChatGPT／DeepSeek 网页账号的工具确认模式。
+独立的 Chromium Manifest V3 浏览器扩展。点击工具栏图标打开原生侧栏，在输入区选择模型，使用上箭头发送、方块停止。普通聊天、网页操作以及列出和读取通过浏览器授权的本地目录，只需 Navi Link 和支持 Responses 的模型 API。需要新建文件、Finder 或项目用例测试时，可连接本套件的 Navi 工作台。也保留 ChatGPT／DeepSeek 网页账号的工具确认模式。
 
 ## 用团队网站账号对话
 
@@ -10,7 +10,7 @@
 
 ## 安装与独立聊天
 
-[下载 Navi Link 插件 ZIP](https://github.com/yertYang/nexus-agent-suite/raw/refs/heads/main/downloads/navi-link.zip)。解压后按下面的步骤加载。
+[下载 Navi Link 插件 ZIP](https://github.com/yertYang/nexus-agent-suite/raw/refs/heads/main/downloads/navi-link.zip)。Edge 与 Chrome 使用同一个 ZIP。解压后按下面的步骤加载。
 
 1. 在 Chrome 打开 `chrome://extensions`，或在 Edge 打开 `edge://extensions`。启用开发者模式，点「加载已解压的扩展程序」，选择包含 `manifest.json` 的文件夹；ZIP 包须先解压。需要 Chromium 116 或更新版本。固定 Navi Link 到工具栏，点击图标打开侧栏。无需先启动工作台。
 2. 点击输入区右下角的「模型与工具设置」图标，选择独立模式，填写模型 API Base URL（以 `/v1` 结尾）和 API Key，点「保存并连接」并允许访问该服务。支持 HTTPS 或本机 HTTP；服务必须提供 `/models` 和 Responses `/responses`，仅支持 Chat Completions 的服务暂不可用。
@@ -21,9 +21,9 @@
 
 ### 思考强度
 
-独立模式下，如果模型服务在 `/models` 的模型条目中声明 `supported_reasoning_efforts` 或 `reasoning_efforts`，输入区会在模型旁显示强度下拉菜单。支持 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`（条目可为字符串或含 `effort` 的对象），只显示服务实际声明的选项。默认强度不额外发送参数；选择后每轮模型与工具续接请求均携带 Responses `reasoning.effort`。切换模型恢复默认强度，运行中不可更改。
+独立模式下，如果模型服务在 `/models` 的模型条目中声明 `supported_reasoning_efforts` 或 `reasoning_efforts`，输入区会在模型旁显示强度下拉菜单。支持 `none`、`minimal`、`low`、`medium`、`high`、`xhigh`、`max`（条目可为字符串或含 `effort` 的对象），只显示服务实际声明的选项。默认强度不额外发送参数；选择后每轮模型与工具续接请求均携带 Responses `reasoning.effort`。切换模型恢复默认强度，运行中不可更改。
 
-未声明能力的模型以及当前本机模式不显示此控件，不根据模型名称猜测支持情况。已有独立连接可重新「保存并连接」刷新模型目录，这会清除独立模式历史。此功能的协议与请求已用合成模型服务验证，不代表所有兼容服务都支持这些字段。
+未声明能力的模型以及当前本机模式不显示此控件，不根据模型名称猜测支持情况。服务地址和密钥相同时，点击「保存并连接」会刷新模型目录并保留当前独立对话历史。此功能的协议与请求已用合成模型服务验证，不代表所有兼容服务都支持这些字段。
 
 ## 在独立模式读取目录和修改已有文本
 
@@ -49,7 +49,7 @@
 
 仅操作网页时只勾选「允许浏览器操作」，不用勾选本机文件操作；只操作文件时也不必授予浏览器权限。未开启本机文件操作时仍保留原有项目只读工具，但不能打开 Finder 目录或写入文件。文件写入额外受项目读写策略和逐次审批约束。「允许运行测试」继续独立。旧的合并授权保留原范围；想缩小范围需重新配对，新版不会自动追加另一项权限。
 
-自动配对依赖 Navi 已信任的本机扩展安装标识。本套件当前的安装位置可以直接连接。Chrome 从另一个目录加载扩展时可能赋予新的标识；如果 Navi 提示安装未获配对许可，可使用下文的高级方式。
+自动配对依赖 Navi 已信任的本机扩展安装标识。Chrome 从另一个目录加载扩展时可能赋予新的标识；如果 Navi 提示安装未获配对许可，可使用下文的高级方式。
 
 ## 在侧栏对话（本机模式）
 
@@ -121,8 +121,8 @@
 
 ## 界面样式
 
-扩展复用 Navi UI 基础组件，在 `panel.css` 定义侧栏专属的圆角输入区、紧凑图标与设置弹窗。发送和保存使用深色主按钮，设置表单取消嵌套卡片；基础组件源文件不受这些局部样式影响。输入区的模型选择器保持原生键盘操作，长名称收起时截断，展开后可读全名。扩展自带 Navi UI 0.4.1 的 `ui/` 样式、回复复制图标及许可证，可独立加载和打包，不需要安装 UI 包或联网下载样式。套件维护者请在 `design-system/navi-ui/` 修改共享样式，再从套件根目录运行 `npm run ui:sync`。在扩展目录运行 `npm run ui:check` 可核验本地副本；扩展打包会自动执行此检查。
+扩展复用 Navi UI 基础组件，在 `panel.css` 定义侧栏专属的圆角输入区、紧凑图标与设置弹窗。发送和保存使用深色主按钮，设置表单取消嵌套卡片；基础组件源文件不受这些局部样式影响。输入区的模型选择器保持原生键盘操作，长名称收起时截断，展开后可读全名。扩展自带 Navi UI 0.4.1 的 `ui/` 样式、回复复制图标及许可证，可独立加载和打包，不需要安装 UI 包或联网下载样式。套件维护者在 `design-system/navi-ui/` 修改共享资源，运行根目录的 `npm run ui:sync` 更新两个应用的资源和 SHA-256 清单。在扩展目录运行 `npm run ui:check` 可核验本地副本；扩展打包会自动执行此检查。
 
 ## 打包
 
-在扩展目录运行 `npm run package`，校验 UI 副本并生成 `dist/navi-link-1.0.2.zip`。打包需要 Node.js 和 `zip` 命令，无需安装 npm 依赖。许可证和来源见 [LICENSE](LICENSE) 和 [NOTICE.md](NOTICE.md)。
+在扩展目录运行 `npm run package`，校验 UI 资源并生成 `dist/navi-link-1.0.3.zip`。打包需要 Node.js 和 `zip` 命令，无需安装 npm 依赖。许可证和来源见 [LICENSE](LICENSE) 和 [NOTICE.md](NOTICE.md)。

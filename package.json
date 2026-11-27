@@ -6,6 +6,7 @@
     "clients:pack": "python3 scripts/package-clients.py",
     "ui:sync": "node scripts/sync-ui.mjs sync",
     "ui:check": "node scripts/sync-ui.mjs check",
-    "ui:pack": "node scripts/sync-ui.mjs pack"
+    "ui:pack": "node scripts/sync-ui.mjs pack",
+    "package": "npm --prefix browser-extension run package"
   }
 }
